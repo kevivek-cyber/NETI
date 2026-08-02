@@ -7,7 +7,7 @@ Five people. The split follows the architecture: each person owns a layer end-to
 | # | Role | Owns | Primary docs |
 |---|---|---|---|
 | **1** | **Owner / Tech Lead — Vivek** (`kevivek-cyber`) | Integrity layer: Merkle, hash chain, signing, key ceremony, seed derivation. Architecture decisions, PR review, roadmap, external presentation. | [INTEGRITY.md](INTEGRITY.md), [ARCHITECTURE.md](ARCHITECTURE.md) |
-| **2** | **AI / ML Engineer** | Past-paper ingestion, item tagging, IRT calibration, templatisation, LLM variant pipeline and its validators. | [AI_PIPELINE.md](AI_PIPELINE.md) |
+| **2** | **AI / ML Engineer — Krishna** (`me13krishna`) | Past-paper ingestion, item tagging, IRT calibration, templatisation, LLM variant pipeline and its validators. | [AI_PIPELINE.md](AI_PIPELINE.md) |
 | **3** | **Backend Engineer** | FastAPI services, Postgres schema, item bank storage and encryption, exam session lifecycle, scoring. | [ARCHITECTURE.md](ARCHITECTURE.md) §1, §6 |
 | **4** | **Frontend Engineer** | Student exam client (kiosk, offline-tolerant), invigilator console, ceremony UI, receipt/verification views. | [ARCHITECTURE.md](ARCHITECTURE.md) §7 |
 | **5** | **QA / DevOps / Security** | CI, Docker, centre-node deployment, the standalone verifier, threat-model testing, determinism test suite. | [THREAT_MODEL.md](THREAT_MODEL.md) |
