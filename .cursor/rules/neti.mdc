@@ -1,0 +1,32 @@
+---
+description: NETI project context and non-negotiable invariants
+alwaysApply: true
+---
+
+# NETI — project rules
+
+**Read `AGENTS.md` at the repository root. It is the canonical context file.**
+
+NETI is an examination system where a question paper does not exist before the exam begins. Each candidate's paper is generated on the spot from an encrypted item bank, and every paper is hashed into a tamper-evident append-only ledger so the exam can be publicly audited afterwards.
+
+## Invariants — a change violating any of these is wrong, however well it works
+
+- **Never persist an assembled paper.** Papers exist in memory only; only their hash is stored. If a task seems to need a stored paper, the answer is a hash or regeneration from seed.
+- **The generator must stay deterministic.** `generate(seed, bank_version, blueprint)` must return byte-identical output forever. No unseeded randomness, no wall-clock, no dict-order dependence, no LLM calls at exam time.
+- **Never add caching, memoization, parallelism, or retry logic to the generator.** It breaks determinism, which is the entire audit guarantee.
+- **The ledger is append-only.** No `UPDATE` or `DELETE` on ledger tables.
+- **No custom crypto.** Use the primitives specified in `docs/INTEGRITY.md`. If the spec and the code disagree, the spec is right and the code is a bug.
+- **No personally identifying data on the ledger** — permanent by construction, cannot honour deletion requests. Pseudonyms and hashes only.
+- **Never weaken a security property to make a test pass.** Raise it instead.
+
+## Stack
+
+Python 3.11 + FastAPI, PostgreSQL 15, React 18 + Vite + TypeScript, Docker Compose.
+
+## Conventions
+
+- Prefer editing existing modules over adding parallel ones — this codebase must stay legible to five students.
+- Commits: imperative with scope prefix — `ledger: add Merkle inclusion proofs`
+- Branches: `<name>/<feature>`; `main` is protected
+- `backend/app/ledger/` and `backend/app/bank/` require the owner's review
+- Docs in `docs/` are part of any behaviour-changing diff

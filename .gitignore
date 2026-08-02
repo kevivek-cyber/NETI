@@ -1,0 +1,58 @@
+# Secrets — never commit
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+shares/
+ceremony/
+*.share
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Node / frontend
+node_modules/
+dist/
+build/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-error.log*
+
+# ML artefacts
+*.ckpt
+*.pt
+*.safetensors
+*.gguf
+data/raw/
+data/interim/
+models/
+mlruns/
+.ipynb_checkpoints/
+
+# Exam data — must never be committed
+*.bank
+*.bank.enc
+papers/
+responses/
+sessions/
+
+# Editors / OS
+.vscode/
+.idea/
+*.swp
+.DS_Store
+Thumbs.db
+desktop.ini
