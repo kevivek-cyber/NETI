@@ -62,7 +62,7 @@ Supporting work that feeds them:
 
 - **Start here:** create `ml/`, then `backend/app/generation/generator.py`
 
-### Role 3 — Backend (Chaitanya)
+### Role 3 — Backend
 Everything is in memory and resets on reload.
 - Postgres schema; ledger tables with `REVOKE UPDATE, DELETE`
 - Session lifecycle: `registered → checked_in → paper_issued → in_progress → submitted → sealed`
@@ -70,7 +70,7 @@ Everything is in memory and resets on reload.
 - Bank decryption from the ceremony key
 - **Start here:** `backend/app/main.py`, `backend/app/exam/`
 
-### Role 4 — Frontend (Sakshi)
+### Role 4 — Frontend
 The exam client works but is not an exam client yet.
 - Countdown timer with server-signed drift correction
 - Autosave, offline tolerance (service worker), kiosk mode
@@ -78,7 +78,7 @@ The exam client works but is not an exam client yet.
 - Ceremony UI for custodians
 - **Start here:** `frontend/src/`, and `frontend/src/api.ts` is your contract with role 3
 
-### Role 5 — QA / DevOps / Security (Varsharani)
+### Role 5 — QA / DevOps / Security
 - CI: run `pytest` on Windows **and** Linux — determinism must hold across both
 - Golden-hash test pinning a known seed to a known paper hash
 - Docker Compose for backend + Postgres
