@@ -1,0 +1,157 @@
+{
+  "bank_version": "sample-v0.1",
+  "note": "Hand-written placeholder so the skeleton runs end to end. TODO(role 2): replace with the real encrypted, IRT-calibrated bank built from past papers. See docs/AI_PIPELINE.md.",
+  "items": [
+    {
+      "id": "PHY-KIN-0001",
+      "subject": "physics",
+      "chapter": "kinematics",
+      "concept_tags": ["projectile", "range"],
+      "kind": "template",
+      "stem": "A projectile is launched at {angle} degrees with speed {v} m/s. Find its horizontal range. (g = 10 m/s^2)",
+      "params": {"angle": [15, 30, 45, 60], "v": [10, 20, 30, 40]},
+      "answer": "v**2 * sin(2*radians(angle)) / 10",
+      "distractors": [
+        "v**2 * sin(radians(angle)) / 10",
+        "v**2 / 10",
+        "v * sin(2*radians(angle)) / 10"
+      ],
+      "unit": "m",
+      "irt": {"a": "1.21", "b": "-0.34", "c": "0.25"}
+    },
+    {
+      "id": "PHY-DYN-0002",
+      "subject": "physics",
+      "chapter": "laws_of_motion",
+      "concept_tags": ["newton_second_law"],
+      "kind": "template",
+      "stem": "A body of mass {m} kg accelerates at {a} m/s^2. What net force acts on it?",
+      "params": {"m": [2, 4, 5, 8], "a": [3, 5, 6, 10]},
+      "answer": "m * a",
+      "distractors": ["m + a", "m / a", "m * a * 10"],
+      "unit": "N",
+      "irt": {"a": "0.95", "b": "-0.80", "c": "0.25"}
+    },
+    {
+      "id": "PHY-WRK-0003",
+      "subject": "physics",
+      "chapter": "work_energy_power",
+      "concept_tags": ["kinetic_energy"],
+      "kind": "template",
+      "stem": "Find the kinetic energy of a {m} kg body moving at {v} m/s.",
+      "params": {"m": [2, 4, 6, 10], "v": [2, 4, 5, 10]},
+      "answer": "m * v**2 / 2",
+      "distractors": ["m * v / 2", "m * v**2", "m**2 * v / 2"],
+      "unit": "J",
+      "irt": {"a": "1.05", "b": "-0.55", "c": "0.25"}
+    },
+    {
+      "id": "PHY-ELE-0004",
+      "subject": "physics",
+      "chapter": "current_electricity",
+      "concept_tags": ["ohms_law"],
+      "kind": "template",
+      "stem": "A resistor of {r} ohm carries a current of {i} A. Find the potential difference across it.",
+      "params": {"r": [2, 5, 10, 20], "i": [1, 2, 3, 5]},
+      "answer": "r * i",
+      "distractors": ["r / i", "i / r", "r * i**2"],
+      "unit": "V",
+      "irt": {"a": "1.10", "b": "-0.70", "c": "0.25"}
+    },
+    {
+      "id": "CHE-MOL-0001",
+      "subject": "chemistry",
+      "chapter": "mole_concept",
+      "concept_tags": ["moles", "molar_mass"],
+      "kind": "template",
+      "stem": "How many moles are present in {mass} g of a substance with molar mass {mm} g/mol?",
+      "params": {"mass": [18, 36, 44, 90], "mm": [18, 44, 2, 9]},
+      "answer": "mass / mm",
+      "distractors": ["mm / mass", "mass * mm", "mass * mm / 100"],
+      "unit": "mol",
+      "irt": {"a": "1.30", "b": "-0.20", "c": "0.25"}
+    },
+    {
+      "id": "CHE-ATM-0002",
+      "subject": "chemistry",
+      "chapter": "atomic_structure",
+      "concept_tags": ["electronic_configuration"],
+      "kind": "static",
+      "stem": "The maximum number of electrons that can occupy a shell with principal quantum number n = 3 is:",
+      "options": ["18", "8", "32", "9"],
+      "correct": "18",
+      "irt": {"a": "1.15", "b": "-0.40", "c": "0.25"}
+    },
+    {
+      "id": "CHE-BON-0003",
+      "subject": "chemistry",
+      "chapter": "chemical_bonding",
+      "concept_tags": ["hybridisation"],
+      "kind": "static",
+      "stem": "The hybridisation of carbon in methane (CH4) is:",
+      "options": ["sp3", "sp2", "sp", "sp3d"],
+      "correct": "sp3",
+      "irt": {"a": "1.40", "b": "-0.90", "c": "0.25"}
+    },
+    {
+      "id": "BOT-CEL-0001",
+      "subject": "botany",
+      "chapter": "cell_biology",
+      "concept_tags": ["cell_wall"],
+      "kind": "static",
+      "stem": "The primary structural component of the plant cell wall is:",
+      "options": ["Cellulose", "Chitin", "Peptidoglycan", "Lignin"],
+      "correct": "Cellulose",
+      "irt": {"a": "1.25", "b": "-1.10", "c": "0.25"}
+    },
+    {
+      "id": "BOT-PHO-0002",
+      "subject": "botany",
+      "chapter": "photosynthesis",
+      "concept_tags": ["calvin_cycle"],
+      "kind": "static",
+      "stem": "The primary CO2 acceptor in the Calvin cycle is:",
+      "options": ["RuBP", "PEP", "OAA", "PGA"],
+      "correct": "RuBP",
+      "irt": {"a": "1.35", "b": "-0.15", "c": "0.25"}
+    },
+    {
+      "id": "BOT-GEN-0003",
+      "subject": "botany",
+      "chapter": "genetics",
+      "concept_tags": ["mendel", "monohybrid"],
+      "kind": "static",
+      "stem": "The phenotypic ratio of a monohybrid cross in the F2 generation is:",
+      "options": ["3:1", "1:1", "9:3:3:1", "1:2:1"],
+      "correct": "3:1",
+      "irt": {"a": "1.50", "b": "-0.95", "c": "0.25"}
+    },
+    {
+      "id": "ZOO-HUM-0001",
+      "subject": "zoology",
+      "chapter": "human_physiology",
+      "concept_tags": ["circulation"],
+      "kind": "static",
+      "stem": "The chamber of the human heart that pumps oxygenated blood into the aorta is the:",
+      "options": ["Left ventricle", "Right ventricle", "Left atrium", "Right atrium"],
+      "correct": "Left ventricle",
+      "irt": {"a": "1.45", "b": "-1.05", "c": "0.25"}
+    },
+    {
+      "id": "ZOO-EVO-0002",
+      "subject": "zoology",
+      "chapter": "evolution",
+      "concept_tags": ["natural_selection"],
+      "kind": "static",
+      "stem": "Industrial melanism in the peppered moth is a classic example of:",
+      "options": [
+        "Natural selection",
+        "Genetic drift",
+        "Artificial selection",
+        "Founder effect"
+      ],
+      "correct": "Natural selection",
+      "irt": {"a": "1.20", "b": "-0.30", "c": "0.25"}
+    }
+  ]
+}
