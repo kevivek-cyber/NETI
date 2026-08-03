@@ -8,11 +8,11 @@ Five people. The split follows the architecture: each person owns a layer end-to
 |---|---|---|---|
 | **1** | **Owner / Tech Lead — Vivek** (`kevivek-cyber`) | Integrity layer: Merkle, hash chain, signing, key ceremony, seed derivation. Architecture decisions, PR review, roadmap, external presentation. | [INTEGRITY.md](INTEGRITY.md), [ARCHITECTURE.md](ARCHITECTURE.md) |
 | **2** | **AI / ML Engineer — Krishna** (`me13krishna`) | Past-paper ingestion, item tagging, IRT calibration, templatisation, LLM variant pipeline and its validators. | [AI_PIPELINE.md](AI_PIPELINE.md) |
-| **3** | **Backend Engineer** | FastAPI services, Postgres schema, item bank storage and encryption, exam session lifecycle, scoring. | [ARCHITECTURE.md](ARCHITECTURE.md) §1, §6 |
-| **4** | **Frontend Engineer** | Student exam client (kiosk, offline-tolerant), invigilator console, ceremony UI, receipt/verification views. | [ARCHITECTURE.md](ARCHITECTURE.md) §7 |
-| **5** | **QA / DevOps / Security** | CI, Docker, centre-node deployment, the standalone verifier, threat-model testing, determinism test suite. | [THREAT_MODEL.md](THREAT_MODEL.md) |
+| **3** | **Backend Engineer — Chaitanya** | FastAPI services, Postgres schema, item bank storage and encryption, exam session lifecycle, scoring. | [ARCHITECTURE.md](ARCHITECTURE.md) §1, §6 |
+| **4** | **Frontend Engineer — Sakshi** | Student exam client (kiosk, offline-tolerant), invigilator console, ceremony UI, receipt/verification views. | [ARCHITECTURE.md](ARCHITECTURE.md) §7 |
+| **5** | **QA / DevOps / Security — Varsharani** | CI, Docker, centre-node deployment, the standalone verifier, threat-model testing, determinism test suite. | [THREAT_MODEL.md](THREAT_MODEL.md) |
 
-Roles 2–5 are unassigned in this doc — fill in names as the team forms, and keep this table as the single source of truth for "who do I ask."
+This table is the single source of truth for "who do I ask." Add GitHub usernames next to each name as people join the repo.
 
 ## Interfaces between roles
 
