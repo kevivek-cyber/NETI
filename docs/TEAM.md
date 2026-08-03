@@ -9,8 +9,8 @@ Five people. The split follows the architecture: each person owns a layer end-to
 | **1** | **Owner / Tech Lead — Vivek** (`kevivek-cyber`) | Integrity layer: Merkle, hash chain, signing, key ceremony, seed derivation. Architecture decisions, PR review, roadmap, external presentation. | [INTEGRITY.md](INTEGRITY.md), [ARCHITECTURE.md](ARCHITECTURE.md) |
 | **2** | **AI / ML Engineer — Krishna** (`me13krishna`) | **The models.** Question generator (fine-tuned LLM), difficulty predictor, concept tagger, semantic dedup embeddings. Plus the training data pipeline that feeds them and the validators that gate their output. | [AI_PIPELINE.md](AI_PIPELINE.md) |
 | **3** | **Backend Engineer** | FastAPI services, Postgres schema, item bank storage and encryption, exam session lifecycle, scoring. | [ARCHITECTURE.md](ARCHITECTURE.md) §1, §6 |
-| **4** | **Frontend Engineer — Sakshi** (`Sakshi-Pathare`) | Past-paper ingestion, item tagging, IRT calibration, templatisation, LLM variant pipeline and its validators. | [AI_PIPELINE.md](AI_PIPELINE.md) |
-| **5** | **QA / DevOps / Security** | CI, Docker, centre-node deployment, the standalone verifier, threat-model testing, determinism test suite. | [THREAT_MODEL.md](THREAT_MODEL.md) |
+| **4** | **Frontend Engineer — Sakshi** (`Sakshi-Pathare`) | Student exam client (kiosk, offline-tolerant), invigilator console, ceremony UI, receipt/verification views. | [ARCHITECTURE.md](ARCHITECTURE.md) §7 |
+| **5** | **QA / DevOps / Security** | **The standalone verifier** and **reproducible builds** — both load-bearing security deliverables, not testing chores. Plus cross-OS CI, adversarial and property-based testing, centre-node deployment, partition and load drills, exam-day runbook, release process and DPDP compliance. | [THREAT_MODEL.md](THREAT_MODEL.md), [INTEGRITY.md](INTEGRITY.md) §11–12 |
 
 This table is the single source of truth for "who do I ask." Add GitHub usernames next to each name as people join the repo.
 
