@@ -107,28 +107,44 @@ No single institution holds `k`. Authority + centre requires 3 people across 2 i
 The ceremony:
 
 1. Custodians present shares → `K` reconstructed **in RAM**
-2. `master_seed = CSPRNG(32)` — generated now, never earlier
+2. `master_seed = CSPRNG(32)` and `session_pepper = CSPRNG(32)` — generated now, never earlier
 3. Session key generated, certified by the root key
 4. Genesis block written and signed
-5. `K` and `master_seed` held in a `mlock`ed region for the exam window
-6. At seal: zeroise `K`; **publish** `master_seed`
+5. `K`, `master_seed`, and `session_pepper` held in a `mlock`ed region for the exam window
+6. At seal: zeroise `K`; **publish** `master_seed`; **retain `session_pepper` under seal** — it is never published
 
 Ceremony events (share presented, quorum reached, zeroise) are themselves ledgered.
 
 ## 7. Seed derivation
 
+Two steps. The seed keys off a **pseudonym**, never the roll number:
+
 ```
+pseudonym(candidate) = HMAC-SHA256(session_pepper, candidate_id)
+
 seed(candidate) = HKDF-SHA256(
     ikm  = master_seed,
     salt = session_id,
-    info = b"neti/paper/v1|" + candidate_id,
+    info = b"neti/paper/v1|" + pseudonym(candidate),
     L    = 32
 )
 ```
 
-Properties: deterministic, independent across candidates (learning one seed reveals nothing about another), and reproducible by the public once `master_seed` is revealed.
+**Why the pepper exists.** Roll numbers are sequential and enumerable. If the seed derived from `candidate_id` directly, then publishing `master_seed` after the exam — which public audit requires — would let anyone iterate roll numbers and regenerate any named candidate's exact paper. The pepper breaks that link: it is generated in the ceremony, never published, and only pseudonyms appear on the ledger.
+
+The result is a three-way split of what different parties can do:
+
+| Party | Holds | Can do |
+|---|---|---|
+| Public | `master_seed`, ledger | Verify every paper was correctly generated. Cannot link any paper to a person. |
+| Candidate | Their signed receipt | Prove which paper *they* sat. Learns nothing about anyone else. |
+| Auditor / court | `session_pepper` under warrant | De-anonymise specific candidates when legally compelled. |
+
+Properties: deterministic, independent across candidates (learning one seed reveals nothing about another), reproducible by the public, and unlinkable to identity.
 
 The `info` string carries a version tag. If seed derivation ever changes, bump `v1` — old sessions must stay verifiable forever.
+
+Implemented in `backend/app/exam/seeds.py`.
 
 ## 8. Response chain
 
