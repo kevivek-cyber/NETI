@@ -15,6 +15,8 @@ pin the interfaces down, not to be the real service.
 
 from __future__ import annotations
 
+import os
+
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
@@ -30,11 +32,17 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Dev only. TODO(role 5): a real exam terminal is same-origin and kiosked;
-# this must not survive into any deployed build.
+# Demo deployments only. TODO(role 5): a real exam terminal is same-origin
+# and kiosked; this must not survive into a production build.
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.getenv("NETI_CORS_ORIGINS", "http://localhost:5173").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_methods=["*"],
     allow_headers=["*"],
 )

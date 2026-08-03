@@ -41,8 +41,12 @@ export interface Receipt {
   path: { side: "L" | "R"; hash: string }[];
 }
 
+// Dev: Vite proxies /api to localhost:8000.
+// Prod: VITE_API_BASE points at the deployed API (set in render.yaml).
+const BASE = import.meta.env.VITE_API_BASE ?? "/api";
+
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`/api${path}`, {
+  const response = await fetch(`${BASE}${path}`, {
     headers: { "Content-Type": "application/json" },
     ...init,
   });

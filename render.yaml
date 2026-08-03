@@ -1,0 +1,40 @@
+# Render blueprint — demo deployment only.
+#
+# This deploys the walking skeleton so the team and reviewers can click
+# through it. It is NOT a production exam deployment:
+#
+#   - state is in memory, so it resets whenever the instance restarts
+#   - the free tier spins down after ~15 min idle; first request is slow
+#   - more than one instance would each keep a separate ledger
+#   - the item bank is unencrypted placeholder JSON
+#
+# A real deployment runs offline at an exam centre. See docs/ARCHITECTURE.md.
+
+services:
+  - type: web
+    name: neti-api
+    runtime: python
+    plan: free
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: NETI_CORS_ORIGINS
+        value: https://neti-web.onrender.com
+
+  - type: web
+    name: neti-web
+    runtime: static
+    rootDir: frontend
+    buildCommand: npm ci && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_BASE
+        value: https://neti-api.onrender.com
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
