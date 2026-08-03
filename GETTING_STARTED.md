@@ -41,12 +41,26 @@ Blocks are never sealed. Leaves accumulate but nothing is signed.
 - **Start here:** `backend/app/ledger/`, read INTEGRITY.md §4 first
 
 ### Role 2 — AI / ML (Krishna)
-The generator samples items but does nothing to make papers *equally hard*.
-- Parse past papers into the item schema ([ARCHITECTURE.md](docs/ARCHITECTURE.md) §1)
-- IRT calibration, then TIF targeting with bounded retry ([AI_PIPELINE.md](docs/AI_PIPELINE.md) §6 step 8)
-- Chapter weightage, cognitive mix, exposure caps
+**You build the models.** Four of them, in this order. See [AI_PIPELINE.md](docs/AI_PIPELINE.md) § Models.
+
+| # | Model | Job | Approach |
+|---|---|---|---|
+| M1 | **Concept tagger** | question text → subject / chapter / concept / cognitive level | Fine-tuned encoder (DeBERTa or SciBERT), multi-label |
+| M2 | **Difficulty predictor** | question text → IRT `b` and `a` | Regression head on the same encoder. **Solves the no-response-data gap.** |
+| M3 | **Question generator** | concept + difficulty target → new NEET-style question | LoRA fine-tune of an open 7-8B model on parsed past papers |
+| M4 | **Dedup embeddings** | detect near-duplicate items | Sentence embeddings + cosine threshold, powers exposure caps |
+
+Order matters: M1 and M2 are small, quick, and immediately useful — and M2's output is what makes M3 controllable. Build the generator third, not first.
+
+Supporting work that feeds them:
+- Parse past papers into the item schema ([ARCHITECTURE.md](docs/ARCHITECTURE.md) §1) — this is your training set
+- Validation gates on M3 output: NCERT grounding, answer uniqueness, syllabus scope
+- TIF targeting with bounded retry in the generator ([AI_PIPELINE.md](docs/AI_PIPELINE.md) §6 step 8)
 - Replace `eval` in `generator.py` with sympy
-- **Start here:** `backend/app/generation/generator.py`, `backend/app/bank/sample_bank.json`
+
+**Hard rule:** models run **offline during authoring**, never at exam time. Their output is frozen into the approved bank before T=0. An LLM call during generation would break determinism and void the audit guarantee.
+
+- **Start here:** create `ml/`, then `backend/app/generation/generator.py`
 
 ### Role 3 — Backend (Chaitanya)
 Everything is in memory and resets on reload.

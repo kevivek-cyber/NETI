@@ -6,6 +6,41 @@ A generated question that is wrong, ambiguous, or unanswerable is worse than no 
 
 Second hard constraint: 2.4 million *different* papers must be *equally hard*. Uniqueness without equating is just a new kind of unfairness. Section 4 is not optional polish.
 
+## Models
+
+Four trained models. Build them in this order — each one makes the next easier to control.
+
+| # | Model | Input → output | Architecture | Training data | Why it exists |
+|---|---|---|---|---|---|
+| **M1** | Concept tagger | question text → subject, chapter, concept tags, cognitive level | Encoder (DeBERTa-v3 / SciBERT) + multi-label head | Past papers, hand-labelled seed set of ~2k | Tagging 10 years of items by hand is infeasible; the blueprint needs these labels |
+| **M2** | Difficulty predictor | question text (+ tags) → IRT `b`, `a` | Same encoder, regression head | Items with known response statistics; pilot data | **Closes the biggest gap in the project.** Past papers give questions but not how many students got them wrong |
+| **M3** | Question generator | concept + difficulty target → new NEET-style item | LoRA fine-tune of an open 7–8B model (Llama 3.1 / Mistral / Qwen 2.5) | Parsed past papers as instruction pairs | Scales the bank beyond what templates cover — Biology, assertion-reason, matching |
+| **M4** | Dedup embeddings | question → vector | Sentence-transformer, optionally domain-adapted | Item corpus | Near-duplicate detection; powers exposure caps and hall-collision constraints |
+
+### Build order rationale
+
+M1 and M2 are small, train in minutes on a free Colab GPU, and are useful on day one. M2 is the strategically important one: it lets you estimate difficulty for an item that has never been administered, which is what makes generated questions usable at all.
+
+M3 is the headline model, and it is third on purpose. A generator you cannot steer produces plausible-looking questions of unknown difficulty — worthless for a high-stakes exam. With M2 in place you can generate, score, and keep only what lands in the target band.
+
+### M3 training detail
+
+```
+Input  : {"concept": "projectile_range", "difficulty": "b=-0.3", "type": "numerical"}
+Output : {"stem": "...", "options": [...], "correct": 0, "solution": "..."}
+```
+
+- **Base:** an open 7–8B instruct model. Nothing bigger — this must be reproducible by five students on consumer GPUs or Colab.
+- **Method:** LoRA / QLoRA, 4-bit. Full fine-tuning is unnecessary and unaffordable.
+- **Data:** ~10 years of parsed papers as instruction pairs, augmented with template instantiations for numericals.
+- **Eval:** hold out one year entirely. Metrics in § Evaluation below.
+
+### The constraint that never bends
+
+Every model runs **offline, during authoring**. Output is human-reviewed, then frozen into the approved bank before T=0. No model is ever called during exam-time generation — that would make `generate(seed, bank, blueprint)` non-reproducible and destroy the entire audit guarantee.
+
+The model proposes. The symbolic validator and a subject expert dispose.
+
 ## Stage 1 — Ingest past papers
 
 Input: NEET-UG papers and answer keys, ~10 years, plus NCERT-aligned sources.
