@@ -16,9 +16,11 @@ pin the interfaces down, not to be the real service.
 from __future__ import annotations
 
 import os
+from pathlib import Path
 
-from fastapi import FastAPI, HTTPException
+from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .exam import seeds
@@ -32,8 +34,13 @@ app = FastAPI(
     version="0.1.0",
 )
 
-# Demo deployments only. TODO(role 5): a real exam terminal is same-origin
-# and kiosked; this must not survive into a production build.
+# API lives under /api so the built frontend can be served from / by this
+# same process. One service, same origin — which is also what a kiosked
+# exam terminal should look like.
+api = APIRouter()
+
+# Only needed when the Vite dev server runs on a different port. In a
+# deployed build everything is same-origin and this grants nothing.
 ALLOWED_ORIGINS = [
     origin.strip()
     for origin in os.getenv("NETI_CORS_ORIGINS", "http://localhost:5173").split(",")
@@ -68,12 +75,12 @@ class PaperRequest(BaseModel):
     candidate_id: str
 
 
-@app.get("/health")
+@api.get("/health")
 def health() -> dict:
     return {"status": "ok", "session": session.id, "leaves": len(session.leaves)}
 
 
-@app.post("/session/open")
+@api.post("/session/open")
 def open_session(blueprint: str = "DEMO") -> dict:
     """Stand-in for the k-of-n unlock ceremony (ARCHITECTURE.md section 2).
 
@@ -96,7 +103,7 @@ def open_session(blueprint: str = "DEMO") -> dict:
     }
 
 
-@app.post("/exam/paper")
+@api.post("/exam/paper")
 def issue_paper(request: PaperRequest) -> dict:
     """Generate this candidate's paper, ledger it, return it sealed.
 
@@ -123,7 +130,7 @@ def issue_paper(request: PaperRequest) -> dict:
     }
 
 
-@app.get("/ledger/root")
+@api.get("/ledger/root")
 def ledger_root() -> dict:
     return {
         "root": merkle.root(session.leaves).hex(),
@@ -131,7 +138,7 @@ def ledger_root() -> dict:
     }
 
 
-@app.get("/ledger/receipt/{index}")
+@api.get("/ledger/receipt/{index}")
 def receipt(index: int) -> dict:
     """Inclusion proof — the candidate's evidence of what they sat.
 
@@ -147,3 +154,14 @@ def receipt(index: int) -> dict:
         "root": merkle.root(session.leaves).hex(),
         "path": [{"side": s.side, "hash": s.hash.hex()} for s in proof.path],
     }
+
+
+app.include_router(api, prefix="/api")
+
+# Serve the built exam client from this same process, so the whole thing
+# is one service on one origin. Absent in dev — run `npm run dev` and let
+# Vite proxy /api here instead.
+FRONTEND_DIST = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+
+if FRONTEND_DIST.is_dir():
+    app.mount("/", StaticFiles(directory=FRONTEND_DIST, html=True), name="web")

@@ -5,12 +5,13 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    // Backend calls go through /api so the client never hardcodes a host.
+    // The API is mounted at /api on the backend, so pass the path straight
+    // through. In a deployed build the backend serves this app itself and
+    // no proxy is involved.
     proxy: {
       "/api": {
         target: "http://localhost:8000",
         changeOrigin: true,
-        rewrite: (p) => p.replace(/^\/api/, ""),
       },
     },
   },

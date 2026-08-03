@@ -355,6 +355,18 @@ Check in with any roll number. You get a paper generated on the spot and, on sub
 
 Per-role first tasks: [GETTING_STARTED.md](GETTING_STARTED.md).
 
+### Deploy it
+
+One service. The [Dockerfile](Dockerfile) builds the exam client and serves it from the same FastAPI process that exposes the API — one URL, same origin, no CORS.
+
+```bash
+docker build -t neti . && docker run -p 8000:8000 neti     # http://localhost:8000
+```
+
+On Render: **New → Blueprint**, point it at this repo, apply. [render.yaml](render.yaml) does the rest.
+
+Demo only — state is in memory and resets on restart, the free tier sleeps after ~15 min idle, and a second instance would keep its own separate ledger. A real deployment runs offline at an exam centre.
+
 ## Repository map
 
 ```

@@ -1,7 +1,8 @@
-# Render blueprint — demo deployment only.
+# Render blueprint — one service.
 #
-# This deploys the walking skeleton so the team and reviewers can click
-# through it. It is NOT a production exam deployment:
+# The Docker image builds the exam client and serves it from the same
+# FastAPI process that exposes the API, so there is a single URL and no
+# CORS. Demo deployment only:
 #
 #   - state is in memory, so it resets whenever the instance restarts
 #   - the free tier spins down after ~15 min idle; first request is slow
@@ -12,29 +13,8 @@
 
 services:
   - type: web
-    name: neti-api
-    runtime: python
+    name: neti
+    runtime: docker
     plan: free
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
-    healthCheckPath: /health
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.11.9"
-      - key: NETI_CORS_ORIGINS
-        value: https://neti-web.onrender.com
-
-  - type: web
-    name: neti-web
-    runtime: static
-    rootDir: frontend
-    buildCommand: npm ci && npm run build
-    staticPublishPath: dist
-    envVars:
-      - key: VITE_API_BASE
-        value: https://neti-api.onrender.com
-    routes:
-      - type: rewrite
-        source: /*
-        destination: /index.html
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
