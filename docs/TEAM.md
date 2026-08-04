@@ -6,7 +6,7 @@ Five people. The split follows the architecture: each person owns a layer end-to
 
 | # | Role | Owns | Primary docs |
 |---|---|---|---|
-| **1** | **Owner / Tech Lead — Vivek** (`kevivek-cyber`) | Integrity layer: Merkle, hash chain, signing, key ceremony, seed derivation. Architecture decisions, PR review, roadmap, external presentation. | [INTEGRITY.md](INTEGRITY.md), [ARCHITECTURE.md](ARCHITECTURE.md) |
+| **1** | **Owner / Tech Lead — Vivek** (`kevivek-cyber`) | **Works across every layer.** Owns the integrity core outright — Merkle, hash chain, signing, custody codes, key ceremony, seed derivation — and moves into whichever layer is blocked or behind. Architecture decisions, review on every PR, roadmap, external presentation. | [INTEGRITY.md](INTEGRITY.md), [CUSTODY.md](CUSTODY.md), [ARCHITECTURE.md](ARCHITECTURE.md) |
 | **2** | **AI / ML Engineer — Krishna** (`me13krishna`) | **The models.** Question generator (fine-tuned LLM), difficulty predictor, concept tagger, semantic dedup embeddings. Plus the training data pipeline that feeds them and the validators that gate their output. | [AI_PIPELINE.md](AI_PIPELINE.md) |
 | **3** | **Backend Engineer** | FastAPI services, Postgres schema, item bank storage and encryption, exam session lifecycle, scoring. | [ARCHITECTURE.md](ARCHITECTURE.md) §1, §6 |
 | **4** | **Frontend Engineer — Sakshi** (`Sakshi-Pathare`) | Student exam client (kiosk, offline-tolerant), invigilator console, ceremony UI, receipt/verification views. | [ARCHITECTURE.md](ARCHITECTURE.md) §7 |

@@ -33,12 +33,27 @@ Every layer is connected. Most layers are a skeleton. Your job is to replace the
 
 Roles are in [docs/TEAM.md](docs/TEAM.md). Every gap is marked `TODO(role N)` in code — search for it.
 
-### Role 1 — Owner / Integrity (Vivek)
-Blocks are never sealed. Leaves accumulate but nothing is signed.
-- Implement `ledger/chain.py` and `ledger/signing.py` per [INTEGRITY.md](docs/INTEGRITY.md) §4–5
-- Ed25519 session key, block header, `prev_block_hash` chaining
-- Sign the receipt
-- **Start here:** `backend/app/ledger/`, read INTEGRITY.md §4 first
+### Role 1 — Owner / Tech Lead (Vivek)
+
+Works across every layer. Owns the integrity core outright, and moves into whichever
+layer is blocked or behind — no part of this repo is out of scope.
+
+**Owned outright — the integrity core:**
+- `ledger/chain.py` and `ledger/signing.py` per [INTEGRITY.md](docs/INTEGRITY.md) §4–5
+- Personal Ed25519 official signatures, block header, `prev_block_hash` chaining
+- The custody code: packing, sealing, resolution ([CUSTODY.md](docs/CUSTODY.md) §1)
+- Seed derivation from the custody code ([CUSTODY.md](docs/CUSTODY.md) §2)
+- Key ceremony, three-tier split, time-lock
+
+**Floats across everything else:**
+- Architecture decisions and the tiebreak on any design disagreement
+- Review on every PR; mandatory review on `ledger/` and `bank/`
+- Picks up whichever layer is blocked — backend, frontend, ML, or infrastructure
+- Keeps the interface contracts in [TEAM.md](docs/TEAM.md) honest as they shift
+- Roadmap, cut lines, and external presentation
+
+**Start here:** `backend/app/ledger/` — blocks are never sealed, leaves accumulate
+but nothing is signed, and that is the largest hole in the project.
 
 ### Role 2 — AI / ML (Krishna)
 
