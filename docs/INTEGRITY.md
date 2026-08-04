@@ -92,6 +92,10 @@ Authority Root Key (Ed25519, offline, in HSM or air-gapped)
 
 Session keys are ephemeral and destroyed at seal. Compromising one session key cannot forge another session's history, and cannot forge past blocks in its own session because those are already published and chained.
 
+> **Superseded by [CUSTODY.md](CUSTODY.md) §3.** Key custody is now three-tier
+> (centre / independent / authority, all required) plus a time-lock, and the
+> bank is encrypted per item with answers under a separate later-released key.
+
 ## 6. Bank key custody
 
 Shamir's Secret Sharing over GF(2^8), `n = 5`, `k = 3`.
@@ -114,6 +118,9 @@ The ceremony:
 6. At seal: zeroise `K`; **publish** `master_seed`; **retain `session_pepper` under seal** — it is never published
 
 Ceremony events (share presented, quorum reached, zeroise) are themselves ledgered.
+
+> **Superseded by [CUSTODY.md](CUSTODY.md) §2.** The seed now derives from the
+> custody code, which replaces the session pepper described below.
 
 ## 7. Seed derivation
 
