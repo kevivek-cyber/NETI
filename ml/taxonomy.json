@@ -1,0 +1,44 @@
+{
+  "version": "neet-ug-2026",
+  "subjects": {
+    "physics": {
+      "chapters": {
+        "kinematics": ["projectile", "relative_velocity", "uniform_acceleration", "graphs_of_motion"],
+        "laws_of_motion": ["newton_second_law", "friction", "circular_motion", "momentum_conservation"],
+        "work_energy_power": ["work_energy_theorem", "kinetic_energy", "potential_energy", "power_collisional"],
+        "current_electricity": ["ohms_law", "kirchhoff_laws", "potentiometer", "drift_velocity"],
+        "thermodynamics": ["carnot_engine", "first_law_thermo", "molar_heat_capacity", "entropy"],
+        "optics": ["lens_formula", "interference", "total_internal_reflection", "diffraction"]
+      }
+    },
+    "chemistry": {
+      "chapters": {
+        "mole_concept": ["stoichiometry", "molar_mass", "limiting_reagent", "empirical_formula"],
+        "atomic_structure": ["bohr_model", "quantum_numbers", "photoelectric_effect", "de_broglie"],
+        "chemical_bonding": ["hybridisation", "dipole_moment", "vsepr_theory", "molecular_orbital"],
+        "thermodynamics_chem": ["enthalpy_change", "gibbs_free_energy", "hess_law", "bond_energy"],
+        "equilibrium": ["le_chatelier", "solubility_product", "ph_calculation", "buffer_solutions"],
+        "organic_reactions": ["nucleophilic_substitution", "electrophilic_addition", "markovnikov", "aldol_condensation"]
+      }
+    },
+    "botany": {
+      "chapters": {
+        "cell_biology": ["cell_wall", "mitochondria", "chloroplast", "ribosomes", "cell_division"],
+        "photosynthesis": ["calvin_cycle", "light_reactions", "c4_pathway", "photorespiration"],
+        "respiration_in_plants": ["glycolysis", "krebs_cycle", "electron_transport", "fermentation"],
+        "genetics_plants": ["mendelian_ratios", "monohybrid", "dihybrid_cross", "linkage"],
+        "plant_growth": ["auxins", "gibberellins", "photoperiodism", "abscisic_acid"]
+      }
+    },
+    "zoology": {
+      "chapters": {
+        "human_physiology": ["circulation", "respiratory_system", "neural_control", "nephron", "digestion"],
+        "animal_kingdom": ["chordates", "arthropoda", "mollusca", "annelida"],
+        "evolution": ["natural_selection", "homologous_organs", "hardy_weinberg", "adaptive_radiation"],
+        "biomolecules": ["enzymes", "protein_structure", "nucleic_acids", "lipids"],
+        "human_reproduction": ["gametogenesis", "embryonic_development", "menstrual_cycle", "placenta"]
+      }
+    }
+  },
+  "cognitive_levels": ["recall", "application", "analysis"]
+}
