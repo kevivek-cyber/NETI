@@ -16,6 +16,11 @@ class CandidateSession:
         self.paper_hash_hex: str | None = None
         self.response_chain: ResponseChain | None = None
         self.receipt: dict[str, Any] | None = None
+        # Position of this candidate's leaf in the session's Merkle tree.
+        # Held so re-issuing a paper reuses the existing leaf instead of
+        # appending a duplicate, and so the receipt can prove inclusion by
+        # index rather than by searching for a hash that may repeat.
+        self.leaf_index: int | None = None
 
     async def transition_to(self, new_state: SessionState):
         if not validate_transition(self.state, new_state):

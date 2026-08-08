@@ -126,6 +126,12 @@ class CeremonyManager:
         self.unlocked: bool = False
         self.bank_key: bytes | None = None
         self.master_seed: bytes | None = None
+        # Roll numbers are sequential and enumerable. If a seed derived from
+        # candidate_id directly, publishing master_seed for audit would let
+        # anyone regenerate any named candidate's paper. The pepper breaks
+        # that link: generated here, never published, never logged.
+        # INTEGRITY.md §7, CUSTODY.md §1.
+        self.session_pepper: bytes | None = None
 
     def perform_unlock_ceremony(self, shares: list[tuple[int, str]]) -> bytes:
         """
@@ -138,7 +144,10 @@ class CeremonyManager:
         reconstructed_k = SimpleShamirGF256.combine(byte_shares)
 
         self.bank_key = reconstructed_k
+        # Both generated now, never earlier. master_seed is published after
+        # the exam so anyone can reproduce every paper; session_pepper never is.
         self.master_seed = secrets.token_bytes(32)
+        self.session_pepper = secrets.token_bytes(32)
         self.unlocked = True
         return self.master_seed
 
@@ -151,4 +160,12 @@ class CeremonyManager:
             for i in range(len(mutable)):
                 mutable[i] = 0
             self.bank_key = None
+        # The pepper is the deanonymisation key for the whole session, so it
+        # is cleared alongside K. master_seed is deliberately retained: it is
+        # published at seal so the exam can be publicly verified.
+        if self.session_pepper:
+            mutable = bytearray(self.session_pepper)
+            for i in range(len(mutable)):
+                mutable[i] = 0
+            self.session_pepper = None
         self.unlocked = False

@@ -9,14 +9,30 @@ from pydantic import BaseModel
 from app.api.ceremony_router import ceremony_manager
 from app.exam.lifecycle import SessionState
 from app.exam.response_chain import ResponseChain
-from app.exam.seeds import derive_candidate_seed
+from app.exam.seeds import derive_seed, pseudonym
 from app.exam.session_store import session_store
 from app.generation.generator import generate, load_bank, sealed
 from app.ledger.hashing import hash_leaf, hash_receipt
-from app.ledger.merkle import MerkleTree
+from app.ledger import merkle
 from app.db.connection import get_db
 
 router = APIRouter(prefix="/exam", tags=["Exam Delivery"])
+
+def _pseudonymise(candidate_id: str) -> str:
+    """Roll number -> unlinkable session-scoped pseudonym.
+
+    Every persisted row and every ledger entry is keyed by this, never by
+    the candidate id. The ledger is append-only, so a roll number written
+    there could never be removed (CLAUDE.md invariants, CUSTODY.md §1).
+    """
+    if not ceremony_manager.unlocked or ceremony_manager.session_pepper is None:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Ceremony has not been performed; no session pepper available.",
+        )
+    return pseudonym(ceremony_manager.session_pepper, candidate_id)
+
+
 
 # In-memory session leaf registry for Merkle tree batching
 session_leaves: list[str] = []
@@ -47,7 +63,8 @@ class SubmitRequest(BaseModel):
 
 @router.post("/check-in")
 async def check_in(req: CheckInRequest):
-    session = await session_store.get_or_create_session(req.candidate_id, req.session_id)
+    pid = _pseudonymise(req.candidate_id)
+    session = await session_store.get_or_create_session(pid, req.session_id)
     if session.state == SessionState.REGISTERED:
         await session.transition_to(SessionState.CHECKED_IN)
 
@@ -66,18 +83,21 @@ async def issue_paper(req: IssuePaperRequest):
             detail="Exam bank is locked. Unlock ceremony must be completed prior to paper issuance.",
         )
 
-    session = await session_store.get_session(req.candidate_id)
+    pid = _pseudonymise(req.candidate_id)
+    session = await session_store.get_session(pid)
     if not session or session.state != SessionState.CHECKED_IN:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Candidate must be in 'checked_in' state to issue paper.",
         )
 
-    # 1. Derive candidate seed deterministically via HKDF-SHA256
-    candidate_seed = derive_candidate_seed(
+    # 1. Derive this candidate's seed from the pseudonym, not the roll number,
+    #    so publishing master_seed for audit does not let anyone iterate roll
+    #    numbers and regenerate a named candidate's paper (INTEGRITY.md §7).
+    candidate_seed = derive_seed(
         master_seed=ceremony_manager.master_seed,
         session_id=req.session_id,
-        candidate_id=req.candidate_id,
+        pseudonym_hex=pid,
     )
 
     # 2. Pure deterministic paper generation in RAM
@@ -97,15 +117,22 @@ async def issue_paper(req: IssuePaperRequest):
     session.paper_hash_hex = paper_leaf
     session.response_chain = ResponseChain(paper_hash_hex=paper_leaf)
 
-    # Record leaf hash in global Merkle leaves batch
-    if paper_leaf not in session_leaves:
+    # Record the leaf. One leaf per candidate, never deduplicated by hash:
+    # two candidates drawing identical papers is possible with a small bank,
+    # and dropping the second would leave them with no ledger entry, no
+    # receipt, and no way to prove what they sat.
+    #
+    # Keyed by pseudonym so re-issuing a paper to the same candidate (a
+    # terminal crash, say) reuses their existing leaf rather than appending
+    # a duplicate.
+    if session.leaf_index is None:
+        session.leaf_index = len(session_leaves)
         session_leaves.append(paper_leaf)
-        
-        # NOTE: Also save it to ledger_leaves in DB for persistence!
+
         async for conn in get_db():
             await conn.execute(
                 "INSERT INTO ledger_leaves (leaf_index, session_id, candidate_pseudonym, leaf_hash) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
-                len(session_leaves) - 1, req.session_id, req.candidate_id, paper_leaf
+                session.leaf_index, req.session_id, pid, paper_leaf
             )
 
     # 5. Transition state: checked_in -> paper_issued -> in_progress
@@ -123,7 +150,8 @@ async def issue_paper(req: IssuePaperRequest):
 
 @router.post("/submit")
 async def submit_exam(req: SubmitRequest):
-    session = await session_store.get_session(req.candidate_id)
+    pid = _pseudonymise(req.candidate_id)
+    session = await session_store.get_session(pid)
     if not session or session.state != SessionState.IN_PROGRESS:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -152,22 +180,34 @@ async def submit_exam(req: SubmitRequest):
     # Transition state: in_progress -> submitted
     await session.transition_to(SessionState.SUBMITTED)
 
-    # Build Merkle tree over session leaves and produce inclusion proof
-    tree = MerkleTree(session_leaves)
-    
-    # Try to find the leaf_index, fallback to 0 if not found for some reason
-    try:
-        leaf_index = session_leaves.index(session.paper_hash_hex)
-        proof = tree.get_proof(leaf_index)
-    except ValueError:
-        proof = None
+    # Inclusion proof over the session's leaves. Indexed by the candidate's
+    # own leaf_index rather than by searching for their paper hash: two
+    # candidates can legitimately hold the same hash, and a search would
+    # return the first one's proof.
+    leaves = [bytes.fromhex(h) for h in session_leaves]
+    root_hex = merkle.root(leaves).hex()
+
+    if session.leaf_index is None:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Candidate has no ledger leaf; paper was never issued.",
+        )
+
+    p = merkle.prove(leaves, session.leaf_index)
+    proof = {
+        "index": p.index,
+        "leaf": p.leaf.hex(),
+        "path": [{"side": s.side, "hash": s.hash.hex()} for s in p.path],
+    }
 
     receipt_payload = {
-        "candidate_id": req.candidate_id,
+        # Pseudonym, not roll number: the receipt is hashed into the ledger
+        # and the candidate can still identify it as theirs by paper_hash.
+        "candidate_pseudonym": pid,
         "session_id": req.session_id,
         "paper_hash": session.paper_hash_hex,
         "response_chain_digest": req.expected_response_chain,
-        "merkle_root": tree.root,
+        "merkle_root": root_hex,
         "inclusion_proof": proof,
     }
 
@@ -183,7 +223,7 @@ async def submit_exam(req: SubmitRequest):
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT DO NOTHING
             """,
-            req.candidate_id, req.session_id, session.paper_hash_hex, req.expected_response_chain, receipt_h
+            pid, req.session_id, session.paper_hash_hex, req.expected_response_chain, receipt_h
         )
 
     return {
