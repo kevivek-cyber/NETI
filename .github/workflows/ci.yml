@@ -4,7 +4,7 @@ on:
   push:
     branches:
       - main
-      - "varsharani/**"
+      - "**/**"
   pull_request:
     branches:
       - main
@@ -15,11 +15,18 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     strategy:
+      # Run both platforms to completion even if one fails — determinism
+      # across operating systems is the project's central claim, so
+      # "passes on Linux, fails on Windows" is the single most important
+      # thing this workflow can tell us. Cancelling the other job hides it.
+      fail-fast: false
       matrix:
         os:
           - ubuntu-latest
           - windows-latest
 
+    # backend/ for the app package, repo root for the ml package. Both are
+    # needed: the suites import `app.*` and `ml.*` respectively.
     env:
       PYTHONPATH: backend
 
@@ -32,10 +39,21 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: |
+            backend/requirements.txt
+            ml/requirements.txt
 
       - name: Install dependencies
-        run: python -m pip install -r backend/requirements.txt
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r backend/requirements.txt
+          python -m pip install -r ml/requirements.txt
 
-      - name: Run tests
-        run: python -m pytest
+      - name: Run backend tests
+        run: python -m pytest backend/tests -q
+
+      # Run separately rather than as one root-level `pytest`: the two
+      # suites need different import roots, and separate steps name which
+      # side broke instead of one undifferentiated red X.
+      - name: Run ML tests
+        run: python -m pytest ml/tests -q
