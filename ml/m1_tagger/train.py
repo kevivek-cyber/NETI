@@ -32,6 +32,29 @@ from .baseline import M1ConceptTaggerBaseline
 DEFAULT_MODEL_PATH = Path(__file__).resolve().parents[1] / "artifacts" / "models" / "m1_concept_tagger.joblib"
 DEFAULT_METRICS_PATH = Path(__file__).resolve().parents[1] / "artifacts" / "metrics" / "m1_metrics.json"
 
+# Every metrics file must state where its labels came from. Without this,
+# a score computed against generated labels is indistinguishable from a
+# measurement, and gets quoted as one.
+SYNTHETIC_PROVENANCE = {
+    "label_origin_kind": "synthetic",
+    "circular": True,
+    "source": "ml/dataset/curated_mock.py",
+    "note": (
+        "NOT A RESULT. curated_mock.py writes both the questions and their "
+        "labels, and the label formula's terms (cognitive level, maths-symbol "
+        "presence, source template) are also model input features. A high "
+        "score is therefore guaranteed before training and measures formula "
+        "recovery, not prediction. These metrics validate that the pipeline "
+        "runs end to end. Do not quote them as model performance."
+    ),
+    "for_a_real_number": (
+        "Train against measured difficulty (real student responses) or "
+        "expert-rated labels. Published text-based work reports Pearson r of "
+        "0.38-0.60 typically, 0.77-0.87 at the state of the art."
+    ),
+}
+
+
 
 def compute_classification_diagnostics(y_train: list, y_test: list, y_pred: list, task_name: str) -> Dict[str, Any]:
     """Compute detailed evaluation diagnostics including majority baseline and confusion matrix."""
@@ -160,6 +183,7 @@ def train_m1_pipeline(
 
     # Save model and metrics
     model.save(model_output_path)
+    metrics_payload["data_provenance"] = SYNTHETIC_PROVENANCE
     metrics_output_path.parent.mkdir(parents=True, exist_ok=True)
     metrics_output_path.write_text(json.dumps(metrics_payload, indent=2), encoding="utf-8")
 

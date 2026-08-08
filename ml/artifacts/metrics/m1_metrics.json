@@ -1,6 +1,6 @@
 {
   "model": "M1ConceptTaggerBaseline",
-  "timestamp": "2026-08-07T20:02:24.463159+00:00",
+  "timestamp": "2026-08-08T11:44:16.285876+00:00",
   "seed": 42,
   "dataset": {
     "total_items": 350,
@@ -615,5 +615,12 @@
       "weighted_f1": 0.0,
       "hamming_loss": 0.0
     }
+  },
+  "data_provenance": {
+    "label_origin_kind": "synthetic",
+    "circular": true,
+    "source": "ml/dataset/curated_mock.py",
+    "note": "NOT A RESULT. curated_mock.py writes both the questions and their labels, and the label formula's terms (cognitive level, maths-symbol presence, source template) are also model input features. A high score is therefore guaranteed before training and measures formula recovery, not prediction. These metrics validate that the pipeline runs end to end. Do not quote them as model performance.",
+    "for_a_real_number": "Train against measured difficulty (real student responses) or expert-rated labels. Published text-based work reports Pearson r of 0.38-0.60 typically, 0.77-0.87 at the state of the art."
   }
 }
