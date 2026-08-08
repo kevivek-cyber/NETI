@@ -23,6 +23,8 @@ export interface IssuedPaper {
   leaf_index: number;
   paper_hash: string;
   paper: SealedPaper;
+  // TODO(role 3): Expose exam start time for timer calculation
+  started_at?: number;
 }
 
 export interface SessionInfo {
@@ -32,6 +34,8 @@ export interface SessionInfo {
   marks: number;
   bank_version: string;
   blueprint_hash: string;
+  // TODO(role 3): Expose exam duration
+  duration_seconds?: number;
 }
 
 export interface Receipt {
@@ -69,6 +73,13 @@ export const api = {
   receipt: (index: number) => call<Receipt>(`/ledger/receipt/${index}`),
 
   root: () => call<{ root: string; leaf_count: number }>("/ledger/root"),
+
+  // MOCK: Exact server time for CBT timer drift correction.
+  // TODO(role 3): Expose a real GET /session/time endpoint.
+  getServerTime: async () => {
+    // Currently returns local time as a mock
+    return { serverTime: Date.now() };
+  },
 };
 
 // TODO(role 4): submit answers once role 3 exposes POST /exam/submit.
