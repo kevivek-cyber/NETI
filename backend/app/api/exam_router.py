@@ -11,7 +11,7 @@ from app.exam.lifecycle import SessionState
 from app.exam.response_chain import ResponseChain
 from app.exam.seeds import derive_candidate_seed
 from app.exam.session_store import session_store
-from app.generation.sampler import generate_paper
+from app.generation.generator import generate, load_bank, sealed
 from app.ledger.hashing import hash_leaf, hash_receipt
 from app.ledger.merkle import MerkleTree
 from app.db.connection import get_db
@@ -81,10 +81,12 @@ async def issue_paper(req: IssuePaperRequest):
     )
 
     # 2. Pure deterministic paper generation in RAM
-    blueprint = {"subjects": ["Physics", "Chemistry", "Botany", "Zoology"], "questions_per_subject": 45}
-    paper = generate_paper(
+    from app.generation.blueprint import DEMO
+    blueprint = DEMO
+    bank = load_bank() # TODO: Decrypt using ceremony_manager.bank_key
+    paper = generate(
         seed=candidate_seed,
-        bank_version="v1.0.0",
+        bank=bank,
         blueprint=blueprint,
     )
 
@@ -115,7 +117,7 @@ async def issue_paper(req: IssuePaperRequest):
         "candidate_id": req.candidate_id,
         "paper_hash": paper_leaf,
         "session_state": session.state.value,
-        "paper": paper,
+        "paper": sealed(paper),
     }
 
 
