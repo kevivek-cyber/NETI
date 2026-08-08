@@ -49,6 +49,16 @@ papers/
 responses/
 sessions/
 
+# Downloaded datasets — large, and redistributing them may breach their terms.
+# Document the download URL in ml/README.md instead of committing the files.
+data/
+ml/data/
+*.zip
+
+# Trained model artefacts — regenerate with ml/pipeline.py
+*.joblib
+*.pkl
+
 # Editors / OS
 .vscode/
 .idea/
@@ -56,3 +66,4 @@ sessions/
 .DS_Store
 Thumbs.db
 desktop.ini
+.pytest_cache/
