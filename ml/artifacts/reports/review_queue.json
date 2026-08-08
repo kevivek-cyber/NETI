@@ -1,0 +1,190 @@
+[
+  {
+    "item_id": "PHY-KIN-0001",
+    "existing_metadata": {
+      "subject": "physics",
+      "chapter": "kinematics",
+      "concept_tags": [
+        "projectile",
+        "range"
+      ],
+      "cognitive_level": "application"
+    },
+    "predicted_metadata": {
+      "subject": "physics",
+      "chapter": "kinematics",
+      "concept_tags": [
+        "horizontal_range",
+        "projectile_motion"
+      ],
+      "cognitive_level": "application",
+      "confidence": 0.5727377513975206,
+      "source": "ml",
+      "predicted_irt": {
+        "a": "1.28",
+        "b": "-0.42",
+        "c": "0.25"
+      }
+    },
+    "reasons": [
+      "Symbolic validation failed: Distractor collision with answer at params {'angle': 45, 'v': 10}; Distractor collision with answer at params {'angle': 45, 'v': 20}; Distractor collision with answer at params {'angle': 45, 'v': 30}; Distractor collision with answer at params {'angle': 45, 'v': 40}; Distractor collision with answer at params {'angle': 60, 'v': 10}"
+    ],
+    "severity": "high"
+  },
+  {
+    "item_id": "PHY-DYN-0002",
+    "existing_metadata": {
+      "subject": "physics",
+      "chapter": "laws_of_motion",
+      "concept_tags": [
+        "newton_second_law"
+      ],
+      "cognitive_level": "application"
+    },
+    "predicted_metadata": {
+      "subject": "physics",
+      "chapter": "kinematics",
+      "concept_tags": [
+        "kinematics"
+      ],
+      "cognitive_level": "application",
+      "confidence": 0.4009796390966693,
+      "source": "ml",
+      "predicted_irt": {
+        "a": "1.21",
+        "b": "-0.36",
+        "c": "0.25"
+      }
+    },
+    "reasons": [
+      "Chapter conflict: existing='laws_of_motion' vs predicted='kinematics'"
+    ],
+    "severity": "medium"
+  },
+  {
+    "item_id": "PHY-WRK-0003",
+    "existing_metadata": {
+      "subject": "physics",
+      "chapter": "work_energy_power",
+      "concept_tags": [
+        "kinetic_energy"
+      ],
+      "cognitive_level": "application"
+    },
+    "predicted_metadata": {
+      "subject": "physics",
+      "chapter": "kinematics",
+      "concept_tags": [
+        "kinematics"
+      ],
+      "cognitive_level": "application",
+      "confidence": 0.41417581275193666,
+      "source": "ml",
+      "predicted_irt": {
+        "a": "1.13",
+        "b": "-0.82",
+        "c": "0.25"
+      }
+    },
+    "reasons": [
+      "Symbolic validation failed: Distractor collision with answer at params {'m': 2, 'v': 2}; Duplicate distractors generated at params {'m': 4, 'v': 2}; Distractor collision with answer at params {'m': 4, 'v': 4}; Duplicate distractors generated at params {'m': 10, 'v': 5}; Distractor collision with answer at params {'m': 10, 'v': 10}",
+      "Chapter conflict: existing='work_energy_power' vs predicted='kinematics'"
+    ],
+    "severity": "high"
+  },
+  {
+    "item_id": "PHY-ELE-0004",
+    "existing_metadata": {
+      "subject": "physics",
+      "chapter": "current_electricity",
+      "concept_tags": [
+        "ohms_law"
+      ],
+      "cognitive_level": "application"
+    },
+    "predicted_metadata": {
+      "subject": "physics",
+      "chapter": "kinematics",
+      "concept_tags": [
+        "kinematics"
+      ],
+      "cognitive_level": "analysis",
+      "confidence": 0.42144122182927024,
+      "source": "ml",
+      "predicted_irt": {
+        "a": "1.57",
+        "b": "0.98",
+        "c": "0.25"
+      }
+    },
+    "reasons": [
+      "Symbolic validation failed: Distractor collision with answer at params {'r': 2, 'i': 1}; Duplicate distractors generated at params {'r': 2, 'i': 1}; Duplicate distractors generated at params {'r': 2, 'i': 2}; Distractor collision with answer at params {'r': 5, 'i': 1}; Duplicate distractors generated at params {'r': 5, 'i': 1}",
+      "Chapter conflict: existing='current_electricity' vs predicted='kinematics'"
+    ],
+    "severity": "high"
+  },
+  {
+    "item_id": "CHE-MOL-0001",
+    "existing_metadata": {
+      "subject": "chemistry",
+      "chapter": "mole_concept",
+      "concept_tags": [
+        "moles",
+        "molar_mass"
+      ],
+      "cognitive_level": "application"
+    },
+    "predicted_metadata": {
+      "subject": "chemistry",
+      "chapter": "kinematics",
+      "concept_tags": [
+        "kinematics"
+      ],
+      "cognitive_level": "application",
+      "confidence": 0.35705224134143,
+      "source": "ml",
+      "predicted_irt": {
+        "a": "1.14",
+        "b": "-0.45",
+        "c": "0.25"
+      }
+    },
+    "reasons": [
+      "Symbolic validation failed: Distractor collision with answer at params {'mass': 18, 'mm': 18}; Distractor collision with answer at params {'mass': 44, 'mm': 44}",
+      "Chapter conflict: existing='mole_concept' vs predicted='kinematics'"
+    ],
+    "severity": "high"
+  },
+  {
+    "item_id": "BOT-GEN-0003",
+    "existing_metadata": {
+      "subject": "botany",
+      "chapter": "genetics",
+      "concept_tags": [
+        "mendel",
+        "monohybrid"
+      ],
+      "cognitive_level": "application"
+    },
+    "predicted_metadata": {
+      "subject": "botany",
+      "chapter": "genetics_plants",
+      "concept_tags": [
+        "genetics_plants"
+      ],
+      "cognitive_level": "application",
+      "confidence": 0.4084014976153132,
+      "source": "ml",
+      "predicted_irt": {
+        "a": "0.74",
+        "b": "-2.35",
+        "c": "0.25"
+      }
+    },
+    "reasons": [
+      "Chapter conflict: existing='genetics' vs predicted='genetics_plants'",
+      "Chapter 'genetics' not in valid taxonomy for botany"
+    ],
+    "severity": "high"
+  }
+]

@@ -1,0 +1,40 @@
+{
+  "model": "M2DifficultyPredictorBaseline",
+  "timestamp": "2026-08-07T20:02:25.125140+00:00",
+  "seed": 42,
+  "dataset": {
+    "total_items": 350,
+    "train_items": 239,
+    "val_items": 43,
+    "test_items": 68
+  },
+  "metrics": {
+    "num_train_items": 239,
+    "num_test_items": 68,
+    "difficulty_b": {
+      "parameter": "b_difficulty",
+      "mean_baseline_mae": 1.2225455328574946,
+      "mean_baseline_rmse": 1.3193878342161554,
+      "model_mae": 0.4167647058823529,
+      "model_rmse": 0.5011574837607553,
+      "r2_score": 0.8556503567809891,
+      "pearson_r": 0.9291530060351428,
+      "spearman_rho": 0.9154297550409534,
+      "beats_mean_baseline_rmse": true,
+      "beats_mean_baseline_mae": true
+    },
+    "discrimination_a": {
+      "parameter": "a_discrimination",
+      "mean_baseline_mae": 0.2708614324390844,
+      "mean_baseline_rmse": 0.2992880158776043,
+      "model_mae": 0.16411764705882353,
+      "model_rmse": 0.1999264570668278,
+      "r2_score": 0.542470004485588,
+      "pearson_r": 0.7763016686889946,
+      "spearman_rho": 0.7509354518509429,
+      "beats_mean_baseline_rmse": true,
+      "beats_mean_baseline_mae": true
+    },
+    "fixed_c": "0.25"
+  }
+}
