@@ -10,7 +10,7 @@ Two terminals.
 # terminal 1 — backend
 cd backend
 pip install -r requirements.txt
-pytest                              # 26 tests must pass
+pytest                              # 41 tests must pass
 uvicorn app.main:app --reload       # http://localhost:8000/docs
 
 # terminal 2 — frontend
@@ -52,20 +52,35 @@ layer is blocked or behind — no part of this repo is out of scope.
 - Keeps the interface contracts in [TEAM.md](docs/TEAM.md) honest as they shift
 - Roadmap, cut lines, and external presentation
 
-**Start here:** `backend/app/ledger/` — blocks are never sealed, leaves accumulate
-but nothing is signed, and that is the largest hole in the project.
+> **🎯 Current goal — sign the blocks.**
+> Leaves accumulate and nothing is ever sealed. Hashes prove nothing changed;
+> they do not prove who wrote the record, so the authority could discard the
+> ledger and publish a fabricated one that verifies perfectly.
+>
+> 1. `ledger/chain.py` — block header, `prev_block_hash` chaining, genesis block
+>    written at ceremony time committing bank version, generator hash and blueprint
+> 2. `ledger/signing.py` — Ed25519, signed by the three officials personally rather
+>    than by one institutional key ([CUSTODY.md](docs/CUSTODY.md) §4)
+> 3. Sign the receipt so a candidate's proof is verifiable offline
+>
+> **Done when:** a block with fewer than three valid signatures is rejected, and
+> the chain verifies from genesis.
+
+**Start here:** `backend/app/ledger/`.
 
 ### Role 2 — AI / ML (Krishna)
 
-> **🎯 Current goal — build M1 and M2.**
-> The concept tagger and the difficulty predictor. Both are small encoder models that train in minutes on free Colab.
-> 1. Hand-label a seed set of ~2,000 items (subject / chapter / concept / cognitive level)
-> 2. **M1** — fine-tune DeBERTa-v3 or SciBERT with a multi-label head
-> 3. **M2** — regression head on the same encoder, predicting IRT `b` and `a`
+> **🎯 Current goal — retrain M1 on real labels.**
+> ✅ Done: M1 tagger, M2 difficulty, 3PL IRT, symbolic validator, bank tools — the whole pipeline runs.
 >
-> M2 matters most: it estimates difficulty for a question that has never been administered, which is the gap past papers cannot fill. It is also what makes M3 controllable later — build the generator *after* this, not before.
+> **The gap:** every model is trained on `curated_mock.py`, which writes the questions *and* their labels from a formula whose terms are also model features. `m2_metrics.json` now says so explicitly. The scores measure formula recovery, not prediction.
 >
-> **Done when:** M1 tags a held-out year at usable accuracy, and M2's predicted difficulty correlates with known item difficulty on held-out data. Report the correlation honestly, including if it is weak.
+> 1. **M1 on real data — do this first, it is a download.** `openlifescienceai/medmcqa` on HuggingFace: 182,822 real AIIMS/NEET-PG questions with human-assigned subject and topic labels. Retrain and report the number against a majority-class floor. Expect roughly 70% on 20 subjects.
+> 2. **M2 needs data that must be collected.** No public dataset pairs NEET question text with measured difficulty. Two routes: a pilot (300 questions, 100 volunteers, fit IRT to real responses), or LLM-simulated students — have a model attempt each item repeatedly and fit IRT to the failures. The second is a current research method and works on the questions you already have.
+> 3. Then M3 (generator) and M4 (dedup embeddings).
+>
+> **Done when:** at least one model reports a score against labels it did not generate. A correlation of 0.5 on real data beats 0.93 on generated data.
+
 
 **You build the models.** Four of them, in this order. See [AI_PIPELINE.md](docs/AI_PIPELINE.md) § Models.
 
@@ -86,43 +101,44 @@ Supporting work that feeds them:
 
 **Hard rule:** models run **offline during authoring**, never at exam time. Their output is frozen into the approved bank before T=0. An LLM call during generation would break determinism and void the audit guarantee.
 
-- **Start here:** create `ml/`, then `backend/app/generation/generator.py`
+- **Start here:** `ml/dataset/` — swap the mock source for a real one.
 
 ### Role 3 — Backend
 
-> **🎯 Current goal — rebranch, then Postgres and submit.**
+> **🎯 Current goal — encrypt the bank.**
+> ✅ Done: Postgres schema with append-only triggers, Shamir ceremony, session lifecycle, response chain, exam endpoints. Merged and green.
 >
-> **First, unblock the merge.** The `Chaitanya-dev` branch has *unrelated git history* — it does not descend from `main`, so it cannot be merged and would revert the docs if forced. Fix before anything else:
-> 1. Branch fresh from `main`
-> 2. Port over the work that is yours: `exam/lifecycle.py`, `exam/response_chain.py`, `exam/session_store.py`, `db/schema.sql`, `core/keyrelease.py`, the routers
-> 3. **Drop** the duplicated `ledger/` and `exam/seeds.py` — `main` already has them, tested, and with the privacy fix
-> 4. Open a PR
+> **The gap is your own TODO:** `load_bank()` still reads plaintext JSON. The ceremony reconstructs `bank_key` correctly and then nothing uses it.
 >
-> **Then build:**
-> - Postgres schema with the append-only triggers already written (they are good — better than what `main` has)
-> - `POST /exam/submit` with the response hash chain ([INTEGRITY.md](docs/INTEGRITY.md) §8)
-> - Session lifecycle wired to real persistence
+> 1. **Per-item AES-256-GCM** — `item_key = HKDF(bank_master_key, "neti/item/v1|" + item_id)`, per [CUSTODY.md](docs/CUSTODY.md) §3.1. Per-item rather than one blob so a compromised centre node exposes the items it served, not the whole bank.
+> 2. **Answers under a separate key** released at window close, so a mid-exam compromise leaks questions but not answers.
+> 3. **Scoring** — +4 / −1 / 0, computed after the window from regenerated papers.
 >
-> **Done when:** the PR is merged and the frontend's submit button actually sends answers.
+> **Done when:** the bank on disk is ciphertext, and paper generation fails cleanly without a completed ceremony.
 
-Everything is in memory and resets on reload.
-- Postgres schema; ledger tables with `REVOKE UPDATE, DELETE`
-- Session lifecycle: `registered → checked_in → paper_issued → in_progress → submitted → sealed`
-- `POST /exam/submit` with the response hash chain ([INTEGRITY.md](docs/INTEGRITY.md) §8)
-- Bank decryption from the ceremony key
-- **Start here:** `backend/app/main.py`, `backend/app/exam/`
+
+Full scope: FastAPI services, Postgres schema, item bank storage and
+encryption, exam session lifecycle, scoring.
 
 ### Role 4 — Frontend
 
-> **🎯 Current goal — make the exam client a real exam client.**
-> - **Countdown timer** driven by server-signed time, not the browser clock. The client must not be able to give itself more time.
-> - **Autosave** — answers survive a browser crash, a power cut, or a closed tab
-> - **Kiosk mode** — no tab switching, no right-click, no dev tools, no copy
-> - **Offline tolerance** — a service worker caches the issued paper so a network drop does not end someone's exam
+> **🎯 Current goal — the client is broken. Fix the contract first.**
+> The backend was rewritten and the endpoints all changed. `api.ts` calls routes that no longer exist:
 >
-> None of this depends on anyone else. Build it all against the existing typed contract in [api.ts](frontend/src/api.ts).
+> | api.ts calls | backend now serves |
+> |---|---|
+> | `/api/session/open` | `/api/ceremony/unlock` |
+> | `/api/exam/paper` | `/api/exam/check-in` then `/api/exam/issue-paper` |
+> | `/api/ledger/root`, `/api/ledger/receipt/{i}` | gone — the receipt comes back from `/api/exam/submit` |
 >
-> **Done when:** you can kill the network mid-exam, crash the tab, reopen it, and the candidate carries on with their answers intact and the timer correct.
+> Nothing in the UI works end to end right now.
+>
+> 1. **Rewrite `api.ts`** against the real routes. Check-in is now a separate step before a paper is issued.
+> 2. **Wire submit properly** — it must send the answer events and the response-chain digest, then render the receipt the server returns.
+> 3. Then the original goal: **timer** (server-signed, not the browser clock), **autosave**, **kiosk mode**, **offline tolerance**.
+>
+> **Done when:** check-in → paper → answer → submit → receipt works in a browser against the live backend.
+
 
 The exam client works but is not an exam client yet.
 - Countdown timer with server-signed drift correction
@@ -133,21 +149,19 @@ The exam client works but is not an exam client yet.
 
 ### Role 5 — QA / DevOps / Security
 
-> **🎯 Current goal — CI first, then the security work from [CUSTODY.md](docs/CUSTODY.md).**
+> **🎯 Current goal — the security tests.**
+> ✅ Done: cross-OS CI on Ubuntu and Windows. It caught nothing yet because it was only added this week — that is the point of it.
 >
-> **1. Cross-OS CI (do this first, it is small and protects everyone).**
-> GitHub Actions running `pytest` on **Windows and Linux**. Determinism across OS is the project's central claim and nothing currently checks it. Add a golden-hash test pinning a known seed to a known paper hash.
+> Now the part of your role that is a deliverable rather than a chore:
 >
-> **2. Then the security layer around the custody framework:**
-> - **Secret-redaction logging filter** — scrub `master_seed`, `custody_key`, `bank_master_key`, `answer_master_key` and every derived key from all log lines, tracebacks, and error responses. Real systems leak through logs far more often than through broken crypto.
-> - **Leakage tests** — assert none of those values can appear in logs, API responses, or crash dumps
-> - **Per-record key derivation** ([CUSTODY.md](docs/CUSTODY.md) §1.3) — a warrant for one student must unlock exactly one record, never the whole set
-> - **Custody-resolve audit trail** — every deanonymisation writes a ledger event. Test that resolution is impossible without one being written.
-> - **Append-only enforcement** — actually attempt `UPDATE` and `DELETE` on ledger tables and assert they fail *at the database level*
-> - **Property-based Merkle tests** (Hypothesis) — arbitrary leaf counts, arbitrary tampering, proofs must never verify against a wrong root
-> - **Zeroisation checks** — key material actually cleared from memory at seal
+> 1. **Secret-redaction logging filter** — scrub `master_seed`, `session_pepper`, `bank_key` from every log line, traceback and error response. Real systems leak through logs far more often than through broken crypto.
+> 2. **Leakage tests** — force a crash mid-generation, send garbage to the API, and assert no key material appears anywhere in the output.
+> 3. **Append-only enforcement** — actually run `UPDATE` and `DELETE` against `ledger_blocks` and assert the database rejects them. The triggers exist in `schema.sql`; nothing proves they work.
+> 4. **Property-based Merkle tests** (Hypothesis) — arbitrary leaf counts, arbitrary tampering, proofs must never verify against a wrong root.
+> 5. **Golden-hash test** — pin a known seed to a known paper hash so a refactor cannot silently change generator output.
 >
-> **Done when:** CI is green on both OSes, and there is a failing test for every one of those security properties before it is implemented.
+> **Done when:** each of those is a test that fails if the property is removed.
+
 
 Not a support role. Two of the deliverables below — the verifier and reproducible builds — are load-bearing parts of the security argument, not testing chores. Five tracks:
 
