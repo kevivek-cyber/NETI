@@ -4,7 +4,7 @@ import type { SealedPaper } from "../api";
 interface Props {
   paper: SealedPaper;
   answers: Record<number, number>;
-  onAnswer: (question: number, option: number) => void;
+  onAnswer: (question_id: string, question_num: number, option: number) => void;
   onSubmit: () => void;
 }
 
@@ -56,7 +56,7 @@ export function ExamClient({ paper, answers, onAnswer, onSubmit }: Props) {
                   type="radio"
                   name={`q-${question.number}`}
                   checked={answers[question.number] === index}
-                  onChange={() => onAnswer(question.number, index)}
+                  onChange={() => onAnswer(question.item_id, question.number, index)}
                 />
                 <span className="letter">{"ABCD"[index]}</span>
                 <span>{option}</span>

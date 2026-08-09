@@ -50,3 +50,26 @@ def unlock_bank(req: UnlockRequest):
         session_id=req.session_id,
         message="Bank unlocked in memory. Master seed generated for session.",
     )
+
+@router.post("/reveal-answers", response_model=UnlockResponse)
+def reveal_answers(req: UnlockRequest):
+    if req.session_id != ceremony_manager.session_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Session ID mismatch: expected {ceremony_manager.session_id}",
+        )
+
+    shares_tuples = [(s.index, s.share_hex) for s in req.shares]
+    try:
+        ceremony_manager.perform_window_close_ceremony(shares_tuples)
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Answer key release ceremony failed: {str(e)}",
+        )
+
+    return UnlockResponse(
+        status="success",
+        session_id=req.session_id,
+        message="Answers unlocked in memory. Scoring can now proceed.",
+    )

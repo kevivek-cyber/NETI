@@ -19,9 +19,9 @@ export interface SealedPaper {
 }
 
 export interface IssuedPaper {
-  pseudonym: string;
-  leaf_index: number;
+  candidate_id: string;
   paper_hash: string;
+  session_state: string;
   paper: SealedPaper;
 }
 
@@ -35,10 +35,36 @@ export interface SessionInfo {
 }
 
 export interface Receipt {
-  leaf_index: number;
-  leaf: string;
-  root: string;
-  path: { side: "L" | "R"; hash: string }[];
+  candidate_pseudonym: string;
+  session_id: string;
+  paper_hash: string;
+  response_chain_digest: string;
+  merkle_root: string;
+  inclusion_proof: {
+    index: number;
+    leaf: string;
+    path: { side: "L" | "R"; hash: string }[];
+  };
+}
+
+export interface CheckInResponse {
+  status: string;
+  candidate_id: string;
+  session_state: string;
+}
+
+export interface ResponseEvent {
+  question_id: string;
+  selected_option_index: number;
+  timestamp_iso: string;
+}
+
+export interface SubmitResponse {
+  status: string;
+  candidate_id: string;
+  session_state: string;
+  receipt: Receipt;
+  receipt_hash: string;
 }
 
 // Dev: Vite proxies /api to localhost:8000.
@@ -57,19 +83,30 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  openSession: (blueprint = "DEMO") =>
-    call<SessionInfo>(`/session/open?blueprint=${blueprint}`, { method: "POST" }),
-
-  issuePaper: (candidateId: string) =>
-    call<IssuedPaper>("/exam/paper", {
+  checkIn: (candidateId: string, sessionId: string) =>
+    call<CheckInResponse>("/exam/check-in", {
       method: "POST",
-      body: JSON.stringify({ candidate_id: candidateId }),
+      body: JSON.stringify({ candidate_id: candidateId, session_id: sessionId }),
+    }),
+
+  issuePaper: (candidateId: string, sessionId: string) =>
+    call<IssuedPaper>("/exam/issue-paper", {
+      method: "POST",
+      body: JSON.stringify({ candidate_id: candidateId, session_id: sessionId }),
+    }),
+
+  submitExam: (candidateId: string, sessionId: string, events: ResponseEvent[], expectedResponseChain: string) =>
+    call<SubmitResponse>("/exam/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        candidate_id: candidateId,
+        session_id: sessionId,
+        events,
+        expected_response_chain: expectedResponseChain,
+      }),
     }),
 
   receipt: (index: number) => call<Receipt>(`/ledger/receipt/${index}`),
 
   root: () => call<{ root: string; leaf_count: number }>("/ledger/root"),
 };
-
-// TODO(role 4): submit answers once role 3 exposes POST /exam/submit.
-// The response chain (INTEGRITY.md section 8) is hashed server-side.

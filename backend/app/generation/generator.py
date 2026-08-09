@@ -27,6 +27,7 @@ from pathlib import Path
 from typing import Any
 
 from ..ledger.canonical import Domain, hash_object
+from ..bank.encryption import decrypt_item
 from .blueprint import Blueprint
 from .rng import DeterministicRNG
 
@@ -49,7 +50,7 @@ _MATH_NS: dict[str, Any] = {
 
 
 def load_bank(path: Path = BANK_PATH) -> dict:
-    """TODO(role 3): replace with a decrypt-from-ceremony-key loader."""
+    """Load the encrypted bank from disk. Decryption happens per-item in generate()."""
     return json.loads(path.read_text(encoding="utf-8"))
 
 
@@ -66,19 +67,20 @@ def _instantiate(item: dict, rng: DeterministicRNG) -> dict:
     values = {name: rng.choice(choices) for name, choices in item["params"].items()}
     namespace = {**_MATH_NS, **values}
 
-    answer = _format_number(eval(item["answer"], namespace))  # noqa: S307
-    options = [answer]
-    for expression in item["distractors"]:
-        candidate = _format_number(eval(expression, namespace))  # noqa: S307
-        if candidate not in options:
-            options.append(candidate)
+    options = []
+    for expression in item["template_options"]:
+        options.append(_format_number(eval(expression, namespace)))  # noqa: S307
 
     unit = item.get("unit", "")
-    return {
+    res = {
         "stem": item["stem"].format(**values),
         "options": [f"{o} {unit}".strip() for o in options],
-        "correct": f"{answer} {unit}".strip(),
     }
+    
+    if "correct_template_index" in item:
+        res["correct"] = res["options"][item["correct_template_index"]]
+        
+    return res
 
 
 def _render(item: dict, rng: DeterministicRNG) -> dict:
@@ -89,21 +91,27 @@ def _render(item: dict, rng: DeterministicRNG) -> dict:
         rendered = {
             "stem": item["stem"],
             "options": list(item["options"]),
-            "correct": item["correct"],
         }
+        if "correct" in item:
+            rendered["correct"] = item["correct"]
 
     options = rng.shuffled(rendered["options"])
-    return {
+    res = {
         "item_id": item["id"],
         "subject": item["subject"],
         "stem": rendered["stem"],
         "options": options,
-        "answer_index": options.index(rendered["correct"]),
     }
+    if "correct" in rendered:
+        res["answer_index"] = options.index(rendered["correct"])
+    return res
 
 
-def generate(seed: bytes, bank: dict, blueprint: Blueprint) -> dict:
+def generate(seed: bytes, bank: dict, blueprint: Blueprint, bank_key: bytes, answer_key: bytes | None = None) -> dict:
     """Assemble one candidate's paper. Deterministic in `seed`."""
+    if not bank_key:
+        raise ValueError("Cannot generate paper without valid bank_key")
+        
     rng = DeterministicRNG(seed)
     by_subject: dict[str, list[dict]] = {}
     for item in bank["items"]:
@@ -117,7 +125,9 @@ def generate(seed: bytes, bank: dict, blueprint: Blueprint) -> dict:
                 f"bank has {len(pool)} {section.subject} items, "
                 f"blueprint needs {section.count}"
             )
-        for item in rng.sample(pool, section.count):
+        for encrypted_item in rng.sample(pool, section.count):
+            # Only decrypt the items we actually serve!
+            item = decrypt_item(encrypted_item, bank_key, answer_key)
             questions.append(_render(item, rng))
 
     return {
@@ -133,7 +143,7 @@ def sealed(paper: dict) -> dict:
     """The candidate's view: answer keys stripped.
 
     Keys stay sealed until the exam window closes (CLAUDE.md invariants).
-    The hash is always taken over the FULL paper, never this view.
+    The hash is always taken over THIS view, never the FULL paper.
     """
     return {
         **paper,
@@ -146,4 +156,4 @@ def sealed(paper: dict) -> dict:
 
 def paper_hash(paper: dict) -> bytes:
     """The ledger leaf for this paper."""
-    return hash_object(Domain.LEAF, paper)
+    return hash_object(Domain.LEAF, sealed(paper))

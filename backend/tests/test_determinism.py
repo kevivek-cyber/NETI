@@ -41,8 +41,8 @@ def test_different_seeds_diverge():
 
 
 def test_same_seed_same_paper(bank):
-    first = generator.generate(SEED, bank, DEMO)
-    second = generator.generate(SEED, bank, DEMO)
+    first = generator.generate(SEED, bank, DEMO, b"BANK_MASTER_KEY_32_BYTES_0000000", b"ANSWER_MASTER_KEY_32_BYTES_00000")
+    second = generator.generate(SEED, bank, DEMO, b"BANK_MASTER_KEY_32_BYTES_0000000", b"ANSWER_MASTER_KEY_32_BYTES_00000")
     assert generator.paper_hash(first) == generator.paper_hash(second)
 
 
@@ -52,13 +52,13 @@ def test_different_candidates_get_different_papers(bank):
     for roll in range(30):
         pid = seeds.pseudonym(pepper, f"CAND-{roll:04d}")
         seed = seeds.derive_seed(master, "S1", pid)
-        hashes.add(generator.paper_hash(generator.generate(seed, bank, DEMO)))
+        hashes.add(generator.paper_hash(generator.generate(seed, bank, DEMO, b"BANK_MASTER_KEY_32_BYTES_0000000", b"ANSWER_MASTER_KEY_32_BYTES_00000")))
     # A 12-item sample bank collides often; a real bank must not.
     assert len(hashes) > 1
 
 
 def test_paper_matches_the_blueprint(bank):
-    paper = generator.generate(SEED, bank, DEMO)
+    paper = generator.generate(SEED, bank, DEMO, b"BANK_MASTER_KEY_32_BYTES_0000000", b"ANSWER_MASTER_KEY_32_BYTES_00000")
     assert len(paper["questions"]) == DEMO.total_questions
     for question in paper["questions"]:
         assert len(question["options"]) >= 2
@@ -66,7 +66,7 @@ def test_paper_matches_the_blueprint(bank):
 
 
 def test_sealed_paper_hides_the_key(bank):
-    paper = generator.generate(SEED, bank, DEMO)
+    paper = generator.generate(SEED, bank, DEMO, b"BANK_MASTER_KEY_32_BYTES_0000000", b"ANSWER_MASTER_KEY_32_BYTES_00000")
     assert all("answer_index" not in q for q in generator.sealed(paper)["questions"])
 
 
@@ -76,12 +76,13 @@ def test_deterministic_across_processes(bank):
     Catches determinism bugs that a single process hides: hash
     randomisation, dict iteration order, module-level caching.
     """
-    expected = generator.paper_hash(generator.generate(SEED, bank, DEMO)).hex()
+    expected = generator.paper_hash(generator.generate(SEED, bank, DEMO, b"BANK_MASTER_KEY_32_BYTES_0000000", b"ANSWER_MASTER_KEY_32_BYTES_00000")).hex()
     script = (
         "from app.generation import generator;"
         "from app.generation.blueprint import DEMO;"
         "print(generator.paper_hash("
-        "generator.generate(bytes(range(32)), generator.load_bank(), DEMO)).hex())"
+        "generator.generate(bytes(range(32)), generator.load_bank(), DEMO, "
+        "b'BANK_MASTER_KEY_32_BYTES_0000000', b'ANSWER_MASTER_KEY_32_BYTES_00000')).hex())"
     )
     result = subprocess.run(
         [sys.executable, "-c", script],

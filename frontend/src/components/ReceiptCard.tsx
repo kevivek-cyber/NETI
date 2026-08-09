@@ -24,16 +24,16 @@ export function ReceiptCard({ receipt, paperHash }: { receipt: Receipt; paperHas
         <dd className="mono">{paperHash}</dd>
 
         <dt>Ledger index</dt>
-        <dd className="mono">{receipt.leaf_index}</dd>
+        <dd className="mono">{receipt.inclusion_proof.index}</dd>
 
         <dt>Merkle root</dt>
-        <dd className="mono">{receipt.root}</dd>
+        <dd className="mono">{receipt.merkle_root}</dd>
       </dl>
 
       <details>
-        <summary>Inclusion proof ({receipt.path.length} steps)</summary>
+        <summary>Inclusion proof ({receipt.inclusion_proof.path.length} steps)</summary>
         <ol className="proof">
-          {receipt.path.map((step, i) => (
+          {receipt.inclusion_proof.path.map((step: { side: "L" | "R"; hash: string }, i: number) => (
             <li key={i}>
               <span className="tag">{step.side}</span>
               <span className="mono">{step.hash}</span>

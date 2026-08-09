@@ -6,152 +6,196 @@
       "id": "PHY-KIN-0001",
       "subject": "physics",
       "chapter": "kinematics",
-      "concept_tags": ["projectile", "range"],
-      "kind": "template",
-      "stem": "A projectile is launched at {angle} degrees with speed {v} m/s. Find its horizontal range. (g = 10 m/s^2)",
-      "params": {"angle": [15, 30, 45, 60], "v": [10, 20, 30, 40]},
-      "answer": "v**2 * sin(2*radians(angle)) / 10",
-      "distractors": [
-        "v**2 * sin(radians(angle)) / 10",
-        "v**2 / 10",
-        "v * sin(2*radians(angle)) / 10"
+      "concept_tags": [
+        "projectile",
+        "range"
       ],
-      "unit": "m",
-      "irt": {"a": "1.21", "b": "-0.34", "c": "0.25"}
+      "kind": "template",
+      "irt": {
+        "a": "1.21",
+        "b": "-0.34",
+        "c": "0.25"
+      },
+      "stem_cipher": "51be8920a33c2b406d5bb822f67fcc657aef59cebffe25e5439a117efdabf215e32ec274dd9c11d92df7648c3b7f6cba0ad52848a594293e70ce18ae815973feb080325e3ce9cedb4ccd31887cad5f81f1d199c0bcb993be211ec2b555cac746584be40d3b685d12d2c8bb4b2f9d0c63976803e01ab8282e08cee51ec7915994d0b5b022112e68f7e086629c6131caf556e434efd41cf7e9884b712b02cd6b372362a7f83bab7d3541b792ffc198ea8c029ef31289b1f6ebe5ca009226e92ab5926a8155f1ddd6263b4c6c212216f5ea1bcf4ddf2946ab0f7aa89b026493006ba19e2f2821410efc14bc994e195c7f43a5034f3b0fdf44f709cbcd9ddcdfca3c321aafc4187c3564fe948b3db1e29b7a4070609c416c84fec8434206e942ec7c7c42d832d272dbdd0c3017cb2ea8d12280ac99beba21971919ee9ff774f815376a9b28bb1dacc377adfc64eab5ad2e0ffc61c2eba0ede9f73be826f4b522fef4f6cee20a669abb5052",
+      "solution_cipher": "b5d0a4eff8707a7880c132cd0a5fb97955e7d1ea0e184d1bdfa773024314a0145072bc1a780e9355e30fd3bd49d96905e2f3683ab655ca5104"
     },
     {
       "id": "PHY-DYN-0002",
       "subject": "physics",
       "chapter": "laws_of_motion",
-      "concept_tags": ["newton_second_law"],
+      "concept_tags": [
+        "newton_second_law"
+      ],
       "kind": "template",
-      "stem": "A body of mass {m} kg accelerates at {a} m/s^2. What net force acts on it?",
-      "params": {"m": [2, 4, 5, 8], "a": [3, 5, 6, 10]},
-      "answer": "m * a",
-      "distractors": ["m + a", "m / a", "m * a * 10"],
-      "unit": "N",
-      "irt": {"a": "0.95", "b": "-0.80", "c": "0.25"}
+      "irt": {
+        "a": "0.95",
+        "b": "-0.80",
+        "c": "0.25"
+      },
+      "stem_cipher": "ae17ebab3b3e2878a225d824a6483a207ec3b1ae9983e4be3a01d1dfc9d7b1f7f185423932093b058fed8d0a471c18615ae4686cf902123475a927b48af89df5cdff690afaafebe6e12eae930a57e3818146b6406f174fc8fc5e544fee47c0196a2f39e1249dfc133990c5568232e8cac8ad64463cbd88fe86b91468d1a0a4f68d60cd2aec3ba26c1122abdd0be586fc7b06dad1ad11a2594b7efe0389a0f3d0828b6dd01bcc94f9bcb6ace8ae5a282cdb86fae9177c24fbefb8c83233452be13a1e82bc07a057fb458182841622a421c2316cc8392b7db8bcc83e2274afd619410b91655d91aecb8a6e345cedd5d66807",
+      "solution_cipher": "5962188c91f2facd630e5a329d062028f89e8079466a306655c303c57b7c97a915f3d619efdf12685cd22d46d7b8ad23fe9d9dfb859c39da4f"
     },
     {
       "id": "PHY-WRK-0003",
       "subject": "physics",
       "chapter": "work_energy_power",
-      "concept_tags": ["kinetic_energy"],
+      "concept_tags": [
+        "kinetic_energy"
+      ],
       "kind": "template",
-      "stem": "Find the kinetic energy of a {m} kg body moving at {v} m/s.",
-      "params": {"m": [2, 4, 6, 10], "v": [2, 4, 5, 10]},
-      "answer": "m * v**2 / 2",
-      "distractors": ["m * v / 2", "m * v**2", "m**2 * v / 2"],
-      "unit": "J",
-      "irt": {"a": "1.05", "b": "-0.55", "c": "0.25"}
+      "irt": {
+        "a": "1.05",
+        "b": "-0.55",
+        "c": "0.25"
+      },
+      "stem_cipher": "4feb14a3c01bd0246a0f4aa76dea7eefe3d6c8ebbacfcbd45aa17707d92e99142e321ccb7644e6efa3eb699dde3438b42296a35993e769760c8a3338a6298f8e879137db0c81ffb4134fd3da20ea7e961e44350bb763de01ec8e31b7f00f5286953a3c0d268c24afc2be20129d9b0be429ff00bdc68f4f689bdfeac79636c36d5e6aa6fef3768f2062f789673dc3ac82fcd010da2e76f12195dde7ec610b522619eed2cee5077f8eb8e4d0f3da94323fb146d1a513bf7ae906e5630c901e94e3c19828afebfabf11440697a212c305fe514a3872bb94ba906651e3d41bada2aac14ea6a1349d094ba0b77d11932d8096d33174",
+      "solution_cipher": "38013daf9abcbd770ada0bee79f57f54aba6221069155012fa5ee06ab8d6b4ff14fc78a5d0fea42b3bf8283acfe944d5f1225e10adb0638976"
     },
     {
       "id": "PHY-ELE-0004",
       "subject": "physics",
       "chapter": "current_electricity",
-      "concept_tags": ["ohms_law"],
+      "concept_tags": [
+        "ohms_law"
+      ],
       "kind": "template",
-      "stem": "A resistor of {r} ohm carries a current of {i} A. Find the potential difference across it.",
-      "params": {"r": [2, 5, 10, 20], "i": [1, 2, 3, 5]},
-      "answer": "r * i",
-      "distractors": ["r / i", "i / r", "r * i**2"],
-      "unit": "V",
-      "irt": {"a": "1.10", "b": "-0.70", "c": "0.25"}
+      "irt": {
+        "a": "1.10",
+        "b": "-0.70",
+        "c": "0.25"
+      },
+      "stem_cipher": "a121a920d67fc957ce4524fdee989697a03ef1db6db47c0a198ae6b7f9911cb484970b7817e6c0b5bc0b4c65b740629760135019e76791241d0326ce7e389285c8f415ea69fbe557fa39fc759aee5c17c17a303776daaabcd147ab64543646bbbace2114d733a853168b273a01c2115ce87f47038f63c67bcfbefda0079248d7e366da3267491426bbf8208d7d6e5b59b851e2e3f9cfde88ddfe0127367e6265e48b9154f783d9be139ef69bf8d04d91a45a06ae8d3e70d25f24eed092a8ea2f37b58944444d67baf46bd93337d41c9d07cb7619d261a223cddb45a54a866e1ba81166281469f00a7bceb1d79dda14d243d79dabe06c2e3b7b0ef588d7f94936",
+      "solution_cipher": "838d924a7cb91b0b41d99f34fe8764e76736db48973fe4e3e20ed54192236da165f141c8be92f43c5d969ef5cd4647030aa2878d2714eee48b"
     },
     {
       "id": "CHE-MOL-0001",
       "subject": "chemistry",
       "chapter": "mole_concept",
-      "concept_tags": ["moles", "molar_mass"],
+      "concept_tags": [
+        "moles",
+        "molar_mass"
+      ],
       "kind": "template",
-      "stem": "How many moles are present in {mass} g of a substance with molar mass {mm} g/mol?",
-      "params": {"mass": [18, 36, 44, 90], "mm": [18, 44, 2, 9]},
-      "answer": "mass / mm",
-      "distractors": ["mm / mass", "mass * mm", "mass * mm / 100"],
-      "unit": "mol",
-      "irt": {"a": "1.30", "b": "-0.20", "c": "0.25"}
+      "irt": {
+        "a": "1.30",
+        "b": "-0.20",
+        "c": "0.25"
+      },
+      "stem_cipher": "5595ff578bf9707b7610ef63c944b89d33905113733b5bce1ef1540cdd839a50b0ba56838c42df852554d01bbbb855b531fca41fe9bf2fc223cd0e54e9db88760c7df3a7d095beaada24036d1d23cb74c46cc6fb997e5f4f8b8107c5e81bdd38a82a99af3266c60d53ebceaf12c6844d5374a4acdef8bc145d5d5815fb24d7da47329d64500272103fefa8bdc13d2de5e59ce974dbb2321119591980b20fbb87dcbbf8a2f9ef71d0d425c4c790723e861ddcf364e26079056fb09607f5a673d7a2e6280e0ba54995f503df785d2ca4b8bc05b7af404edfccfa99fa3cc3d88860c6db54d3057930d1d40e7e2f465866a9e1cadc18a7ffc711d8be92ac6bef6280a86a4a306a450ecec11e50526c6ecf441cd749a2",
+      "solution_cipher": "0b3762c15ba855841c18b68689b5478530c9d8fbfb2fa0e13746dbd128e4d218aaad6a0bba596b65d7b68b924fff248872b6db499a07586af0"
     },
     {
       "id": "CHE-ATM-0002",
       "subject": "chemistry",
       "chapter": "atomic_structure",
-      "concept_tags": ["electronic_configuration"],
+      "concept_tags": [
+        "electronic_configuration"
+      ],
       "kind": "static",
-      "stem": "The maximum number of electrons that can occupy a shell with principal quantum number n = 3 is:",
-      "options": ["18", "8", "32", "9"],
-      "correct": "18",
-      "irt": {"a": "1.15", "b": "-0.40", "c": "0.25"}
+      "irt": {
+        "a": "1.15",
+        "b": "-0.40",
+        "c": "0.25"
+      },
+      "stem_cipher": "ee7c0418ea983cb43254a132f3381882b997024ff7d50136f7d75271fd51a8e835b2d55766e6bbb8064da0a76fac5e19772274eccc7aa93377900ffe6323c70aec7defbbbcff43ee5a4f7a7e634e795144933f6d3fe4ed6023fe5cad0aa44e58df5369b8a664556850727d050ac0143f6ab6e00597fce8857a5c5530c97b36f607490837076357bab1bff0f1bf47639a8df5af7401b9b41a04f85e2dea27b91decd1c0c9f98b4abdba63",
+      "solution_cipher": "e88f5fdaac4283c8e52b8ac274e1042eaddc73965b971924a7ed891660e4607722566ac5571e0b251e682cdc26"
     },
     {
       "id": "CHE-BON-0003",
       "subject": "chemistry",
       "chapter": "chemical_bonding",
-      "concept_tags": ["hybridisation"],
+      "concept_tags": [
+        "hybridisation"
+      ],
       "kind": "static",
-      "stem": "The hybridisation of carbon in methane (CH4) is:",
-      "options": ["sp3", "sp2", "sp", "sp3d"],
-      "correct": "sp3",
-      "irt": {"a": "1.40", "b": "-0.90", "c": "0.25"}
+      "irt": {
+        "a": "1.40",
+        "b": "-0.90",
+        "c": "0.25"
+      },
+      "stem_cipher": "2e8b28863abdfb59fbbdf6d2e386fe349516485446ef8f93cd6d2e4bdb484f67fbd035c4c37487a071a5807729f268860749946e8f57aec5e6922952e428246ed56d320b2ad6efd9c3b615eafd3d140d5a5d7309b8fe9ecfe2553ee630a7ed5d75c22857ea29ed78f297001657c169341f944c324bda6d595bb1c39e2f1a1aec77",
+      "solution_cipher": "268436d85df8ea8902c7484195aaaee9b70fcbc8abb09fdb6e56a87fc985999d40d3d300e8e989fcc16079fc3f7d"
     },
     {
       "id": "BOT-CEL-0001",
       "subject": "botany",
       "chapter": "cell_biology",
-      "concept_tags": ["cell_wall"],
+      "concept_tags": [
+        "cell_wall"
+      ],
       "kind": "static",
-      "stem": "The primary structural component of the plant cell wall is:",
-      "options": ["Cellulose", "Chitin", "Peptidoglycan", "Lignin"],
-      "correct": "Cellulose",
-      "irt": {"a": "1.25", "b": "-1.10", "c": "0.25"}
+      "irt": {
+        "a": "1.25",
+        "b": "-1.10",
+        "c": "0.25"
+      },
+      "stem_cipher": "b23ac952a2c1b44f511c14f99d80c9970c22e22fa4a540a963941976716485f468f146f7d7c0d2f1acbc737c5d349ffbd8f9fd5ca5e1a93d82bd41344091e14a2b469ac692ce49cb2480dd59980b55b475fe78fea741ca0fd7a6b215e8fce789b2dc9f65aae7d97cc3fdf595bb9bb68381b5a2a153af13d13ee573e642dd018af7e2c5343a0c05f76639bd6818234ba699d46cb11bc89a74197c4d2057993e21b7bb",
+      "solution_cipher": "0213ad8b211be78c46428da4e3a6560fb25752b91e6d316a10d6db4dd7dc47591b9d3e8729d79c1cefcd032fbc909bb76fbfc30c"
     },
     {
       "id": "BOT-PHO-0002",
       "subject": "botany",
       "chapter": "photosynthesis",
-      "concept_tags": ["calvin_cycle"],
+      "concept_tags": [
+        "calvin_cycle"
+      ],
       "kind": "static",
-      "stem": "The primary CO2 acceptor in the Calvin cycle is:",
-      "options": ["RuBP", "PEP", "OAA", "PGA"],
-      "correct": "RuBP",
-      "irt": {"a": "1.35", "b": "-0.15", "c": "0.25"}
+      "irt": {
+        "a": "1.35",
+        "b": "-0.15",
+        "c": "0.25"
+      },
+      "stem_cipher": "86b05702875ae7c7f8e52fcf6c6a7187024402bc1c626373c96efa65d94b078a87b377fa6031e0b676f6c5b510a0e7110646f25c138b7bd3391e379c783a526aaecfd7295d278d972db90e20fa47c9c5e81888ae5e2ba6ac9a9917baf8bf16bc5cee3d6a6feb67ef7831fce296f44b9514b5e31f82303a053ee96cbc2bcc54e66e6f",
+      "solution_cipher": "02e4c741206f4e7a185ef244fb1af63b227c72b91e8f3566cbc8c24704e5ea48a316602b044215fec69d2268277360"
     },
     {
       "id": "BOT-GEN-0003",
       "subject": "botany",
       "chapter": "genetics",
-      "concept_tags": ["mendel", "monohybrid"],
+      "concept_tags": [
+        "mendel",
+        "monohybrid"
+      ],
       "kind": "static",
-      "stem": "The phenotypic ratio of a monohybrid cross in the F2 generation is:",
-      "options": ["3:1", "1:1", "9:3:3:1", "1:2:1"],
-      "correct": "3:1",
-      "irt": {"a": "1.50", "b": "-0.95", "c": "0.25"}
+      "irt": {
+        "a": "1.50",
+        "b": "-0.95",
+        "c": "0.25"
+      },
+      "stem_cipher": "2382001a291e6c3477f3faa86b7cd801036ddb9faaf8b61d4a1ba57710d8f7aa80e9be490bb7b5229c40b5451b9817b85d76dfcfc215af760a6db0e060a5a6642717278b1a15ccb06f4e929f4889049cbb11d31054148d43ab154323db0c5d933676f534ce8d133af36fcc367b694d7b7074d010827ddaac53fca65c4dfefe4b24c6f71a2ab866eaa0f01e5841893187c5ceef91e79eba3a371b",
+      "solution_cipher": "9cc975237903dfd6fb76b202b3bbe2a24a2d4ad40a1f55ba4232b2903edd0ec9338b4303c2dacc39116777992d28"
     },
     {
       "id": "ZOO-HUM-0001",
       "subject": "zoology",
       "chapter": "human_physiology",
-      "concept_tags": ["circulation"],
+      "concept_tags": [
+        "circulation"
+      ],
       "kind": "static",
-      "stem": "The chamber of the human heart that pumps oxygenated blood into the aorta is the:",
-      "options": ["Left ventricle", "Right ventricle", "Left atrium", "Right atrium"],
-      "correct": "Left ventricle",
-      "irt": {"a": "1.45", "b": "-1.05", "c": "0.25"}
+      "irt": {
+        "a": "1.45",
+        "b": "-1.05",
+        "c": "0.25"
+      },
+      "stem_cipher": "cd765beeb94e89fceaff846be4e2878be72cc6b748f286568fbc8df0ffb526ec62a137d903b87bdb91db4209394d2166498126afeffdeb09c43664532887a02a71fa5b62a805887ecf09cce2af7540d0edaae6cfaf6707b48cdd6a2eecbeac660f615fef6d652d1d08b76d30140d1ae2326a0a32469b0abae17323e3561aab4f5d7c9ac10a1478ceb4be161701372e5574e3902040a921b6c0714eddc21f7e4d4f441adfe09976949a7ba09407789251b00d37aff377461042cfa5070a2659366e326aca42b30c5a7f8e",
+      "solution_cipher": "de3e0c3838e4858c16e7ac2a3ef6a1ce0e4d39d7519598eb8c2d0eec69b396293a1467839b01e1166a5a5c8578e36391dcc83af15960afa499"
     },
     {
       "id": "ZOO-EVO-0002",
       "subject": "zoology",
       "chapter": "evolution",
-      "concept_tags": ["natural_selection"],
-      "kind": "static",
-      "stem": "Industrial melanism in the peppered moth is a classic example of:",
-      "options": [
-        "Natural selection",
-        "Genetic drift",
-        "Artificial selection",
-        "Founder effect"
+      "concept_tags": [
+        "natural_selection"
       ],
-      "correct": "Natural selection",
-      "irt": {"a": "1.20", "b": "-0.30", "c": "0.25"}
+      "kind": "static",
+      "irt": {
+        "a": "1.20",
+        "b": "-0.30",
+        "c": "0.25"
+      },
+      "stem_cipher": "ee6dde57c304c10780c3ed4cbbd8ee0719b85e0b4006eee8f91c4e3dfde83e8a03b32e7516cae9d67a44c04c098fff18200ef01ca7dd992477ea710ce2377436296682d8bebc6d8222498631acdec22a42e4006ddfce9063b413fd5835edbe4f644ba164ff2ea86b0c350cd3d5de5067e1d0e39a386906f4a093e2e0c57be10372585fcd3ccfa2d9abd88d09bb23a841054f92efdd6ae13178ac537ecd4f5c04d384c01bbebb158093bde2919e59600f40dd52bf53e94dc0f6d0280388231052c10148eb2406",
+      "solution_cipher": "ceac796c82165e37038b0c875829a48622e7528959e59a9d9f098ad377ba89658bad8fa097f721ac45700e05cd773213446cdd1b447877b076fe7924"
     }
   ]
 }

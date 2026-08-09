@@ -1,28 +1,31 @@
 import { useState } from "react";
-import { api, type IssuedPaper, type Receipt, type SessionInfo } from "./api";
+import { api, type IssuedPaper, type Receipt, type ResponseEvent } from "./api";
 import { ExamClient } from "./components/ExamClient";
 import { ReceiptCard } from "./components/ReceiptCard";
+import { hashResponseInitial, hashResponseStep } from "./crypto";
 
 type Stage = "checkin" | "exam" | "done";
 
 export default function App() {
   const [stage, setStage] = useState<Stage>("checkin");
   const [candidateId, setCandidateId] = useState("NEET2026-000123");
-  const [session, setSession] = useState<SessionInfo | null>(null);
+  const [sessionId] = useState("2026-NEET-UG");
   const [issued, setIssued] = useState<IssuedPaper | null>(null);
   const [receipt, setReceipt] = useState<Receipt | null>(null);
-  const [answers, setAnswers] = useState<Record<number, number>>({});
+  const [events, setEvents] = useState<ResponseEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+
+  // Actually, computing from events is a bit tricky if we only have item_id in event.
+  // We can just keep a parallel `answers` state for the UI.
+  const [answers, setAnswers] = useState<Record<number, number>>({});
 
   async function checkIn() {
     setBusy(true);
     setError(null);
     try {
-      // TODO(role 3): the ceremony is an invigilator action, not a
-      // candidate one. Move it to the console app once that exists.
-      setSession(await api.openSession("DEMO"));
-      const paper = await api.issuePaper(candidateId);
+      await api.checkIn(candidateId, sessionId);
+      const paper = await api.issuePaper(candidateId, sessionId);
       setIssued(paper);
       setStage("exam");
     } catch (e) {
@@ -32,13 +35,23 @@ export default function App() {
     }
   }
 
+  function handleAnswer(question_id: string, question_num: number, option_index: number) {
+    const timestamp_iso = new Date().toISOString();
+    setEvents((prev) => [...prev, { question_id, selected_option_index: option_index, timestamp_iso }]);
+    setAnswers((prev) => ({ ...prev, [question_num]: option_index }));
+  }
+
   async function submit() {
     if (!issued) return;
     setBusy(true);
     try {
-      // TODO(role 3): POST the answers first; the server hashes them into
-      // the response chain and returns a signed receipt.
-      setReceipt(await api.receipt(issued.leaf_index));
+      let chainDigest = await hashResponseInitial(issued.paper_hash);
+      for (const event of events) {
+        chainDigest = await hashResponseStep(chainDigest, event);
+      }
+      
+      const response = await api.submitExam(candidateId, sessionId, events, chainDigest);
+      setReceipt(response.receipt);
       setStage("done");
     } catch (e) {
       setError(String(e));
@@ -53,10 +66,9 @@ export default function App() {
         <h1>
           NETI <span className="muted">— Non-Exploitable Test Integrity</span>
         </h1>
-        {session && (
+        {issued && (
           <p className="muted small">
-            {session.blueprint} · {session.questions} questions · {session.marks} marks ·
-            bank {session.bank_version}
+            Session: {sessionId} · Bank: {issued.paper.bank_version} · Blueprint: {issued.paper.blueprint}
           </p>
         )}
       </header>
@@ -68,6 +80,7 @@ export default function App() {
           <h2>Candidate check-in</h2>
           <p className="muted">
             Your paper does not exist yet. It is generated when you check in.
+            (Ensure the bank is unlocked before proceeding!)
           </p>
           <label className="field">
             Roll number
@@ -82,12 +95,12 @@ export default function App() {
       {stage === "exam" && issued && (
         <>
           <p className="muted small mono">
-            paper {issued.paper_hash.slice(0, 32)}… · ledger #{issued.leaf_index}
+            paper {issued.paper_hash.slice(0, 32)}…
           </p>
           <ExamClient
             paper={issued.paper}
             answers={answers}
-            onAnswer={(q, o) => setAnswers((a) => ({ ...a, [q]: o }))}
+            onAnswer={handleAnswer}
             onSubmit={submit}
           />
         </>

@@ -59,6 +59,7 @@ CREATE TABLE IF NOT EXISTS submission_receipts (
     paper_hash CHAR(64) NOT NULL,
     response_chain_digest CHAR(64) NOT NULL,
     receipt_hash CHAR(64) NOT NULL UNIQUE,
+    responses JSONB NOT NULL DEFAULT '[]'::jsonb,
     submitted_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 

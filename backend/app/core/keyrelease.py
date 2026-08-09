@@ -126,12 +126,14 @@ class CeremonyManager:
         self.unlocked: bool = False
         self.bank_key: bytes | None = None
         self.master_seed: bytes | None = None
-        # Roll numbers are sequential and enumerable. If a seed derived from
         # candidate_id directly, publishing master_seed for audit would let
         # anyone regenerate any named candidate's paper. The pepper breaks
         # that link: generated here, never published, never logged.
         # INTEGRITY.md §7, CUSTODY.md §1.
         self.session_pepper: bytes | None = None
+        # TODO(role 3): The answer_master_key is supposed to be released at window close.
+        # Until that second ceremony is implemented, we mock it here.
+        self.answer_key: bytes | None = None
 
     def perform_unlock_ceremony(self, shares: list[tuple[int, str]]) -> bytes:
         """
@@ -148,8 +150,21 @@ class CeremonyManager:
         # the exam so anyone can reproduce every paper; session_pepper never is.
         self.master_seed = secrets.token_bytes(32)
         self.session_pepper = secrets.token_bytes(32)
+        
         self.unlocked = True
         return self.master_seed
+
+    def perform_window_close_ceremony(self, shares: list[tuple[int, str]]) -> bytes:
+        """
+        Reconstructs the answer_master_key from threshold shares.
+        Called after the exam window has closed to allow scoring.
+        """
+        if not self.unlocked:
+            raise ValueError("Bank must be unlocked before closing the window")
+            
+        reconstructed_hex = self._combine(shares)
+        self.answer_key = bytes.fromhex(reconstructed_hex)
+        return self.answer_key
 
     def zeroise(self):
         """
@@ -168,4 +183,9 @@ class CeremonyManager:
             for i in range(len(mutable)):
                 mutable[i] = 0
             self.session_pepper = None
+        if self.answer_key:
+            mutable = bytearray(self.answer_key)
+            for i in range(len(mutable)):
+                mutable[i] = 0
+            self.answer_key = None
         self.unlocked = False

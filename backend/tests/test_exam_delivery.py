@@ -168,3 +168,19 @@ def test_lifecycle_rejects_illegal_transitions():
     assert validate_transition(SessionState.REGISTERED, SessionState.CHECKED_IN)
     assert not validate_transition(SessionState.REGISTERED, SessionState.SUBMITTED)
     assert not validate_transition(SessionState.SEALED, SessionState.IN_PROGRESS)
+
+
+def test_generation_fails_cleanly_without_ceremony():
+    from fastapi.testclient import TestClient
+    from app.main import app
+    
+    client = TestClient(app)
+    
+    # Try to issue paper without unlocking bank first
+    response = client.post("/api/exam/issue-paper", json={
+        "candidate_id": "NEET2026-999999",
+        "session_id": "TEST_SESSION"
+    })
+    
+    assert response.status_code == 403
+    assert "Exam bank is locked" in response.json()["detail"]

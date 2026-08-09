@@ -13,6 +13,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.api.ceremony_router import router as ceremony_router
 from app.api.exam_router import router as exam_router
+from app.api.scoring_router import router as scoring_router
 
 app = FastAPI(
     title="NETI — Non-Exploitable Test Integrity API",
@@ -40,6 +41,7 @@ app.add_middleware(
 # Include API routers under /api
 app.include_router(ceremony_router, prefix="/api")
 app.include_router(exam_router, prefix="/api")
+app.include_router(scoring_router, prefix="/api")
 
 @app.get("/api/health")
 def health_check():

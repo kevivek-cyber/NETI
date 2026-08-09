@@ -103,11 +103,18 @@ async def issue_paper(req: IssuePaperRequest):
     # 2. Pure deterministic paper generation in RAM
     from app.generation.blueprint import DEMO
     blueprint = DEMO
-    bank = load_bank() # TODO: Decrypt using ceremony_manager.bank_key
+    if not ceremony_manager.bank_key:
+        raise HTTPException(
+            status_code=400,
+            detail="Bank key is not available. Ceremony incomplete or keys zeroised."
+        )
+
     paper = generate(
         seed=candidate_seed,
-        bank=bank,
+        bank=load_bank(),
         blueprint=blueprint,
+        bank_key=ceremony_manager.bank_key,
+        answer_key=ceremony_manager.answer_key
     )
 
     # 3. Compute domain-separated paper leaf hash H_leaf
@@ -219,11 +226,11 @@ async def submit_exam(req: SubmitRequest):
     async for conn in get_db():
         await conn.execute(
             """
-            INSERT INTO submission_receipts (candidate_pseudonym, session_id, paper_hash, response_chain_digest, receipt_hash)
-            VALUES ($1, $2, $3, $4, $5)
+            INSERT INTO submission_receipts (candidate_pseudonym, session_id, paper_hash, response_chain_digest, receipt_hash, responses)
+            VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT DO NOTHING
             """,
-            pid, req.session_id, session.paper_hash_hex, req.expected_response_chain, receipt_h
+            pid, req.session_id, session.paper_hash_hex, req.expected_response_chain, receipt_h, json.dumps(req.events)
         )
 
     return {
