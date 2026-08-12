@@ -18,31 +18,84 @@ export interface SealedPaper {
   questions: Question[];
 }
 
-export interface IssuedPaper {
-  pseudonym: string;
-  leaf_index: number;
-  paper_hash: string;
-  paper: SealedPaper;
-  // TODO(role 3): Expose exam start time for timer calculation
-  started_at?: number;
-}
-
-export interface SessionInfo {
+export interface CheckInRequest {
+  candidate_id: string;
   session_id: string;
-  blueprint: string;
-  questions: number;
-  marks: number;
-  bank_version: string;
-  blueprint_hash: string;
-  // TODO(role 3): Expose exam duration
-  duration_seconds?: number;
 }
 
-export interface Receipt {
-  leaf_index: number;
+export interface CheckInResponse {
+  status: string;
+  candidate_id: string;
+  session_state: string;
+}
+
+export interface IssuePaperRequest {
+  candidate_id: string;
+  session_id: string;
+}
+
+export interface IssuePaperResponse {
+  candidate_id: string;
+  paper_hash: string;
+  session_state: string;
+  paper: SealedPaper;
+}
+
+export interface ResponseEvent {
+  question_id: string;
+  selected_option_index: number;
+  timestamp_iso: string;
+}
+
+export interface SubmitRequest {
+  candidate_id: string;
+  session_id: string;
+  events: ResponseEvent[];
+  expected_response_chain: string;
+}
+
+export interface MerklePathStep {
+  side: "L" | "R";
+  hash: string;
+}
+
+export interface InclusionProof {
+  index: number;
   leaf: string;
-  root: string;
-  path: { side: "L" | "R"; hash: string }[];
+  path: MerklePathStep[];
+}
+
+export interface ReceiptPayload {
+  candidate_pseudonym: string;
+  session_id: string;
+  paper_hash: string;
+  response_chain_digest: string;
+  merkle_root: string;
+  inclusion_proof: InclusionProof;
+}
+
+export interface SubmitResponse {
+  status: string;
+  candidate_id: string;
+  session_state: string;
+  receipt: ReceiptPayload;
+  receipt_hash: string;
+}
+
+export interface ShareInput {
+  index: number;
+  share_hex: string;
+}
+
+export interface UnlockRequest {
+  session_id: string;
+  shares: ShareInput[];
+}
+
+export interface UnlockResponse {
+  status: string;
+  session_id: string;
+  message: string;
 }
 
 // Dev: Vite proxies /api to localhost:8000.
@@ -55,32 +108,47 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
     ...init,
   });
   if (!response.ok) {
-    throw new Error(`${response.status} ${await response.text()}`);
+    const errorText = await response.text();
+    let detail = errorText;
+    try {
+      const parsed = JSON.parse(errorText);
+      if (parsed.detail) detail = parsed.detail;
+    } catch (e) {
+      // Not JSON
+    }
+    throw new Error(`API Error (${response.status}): ${detail}`);
   }
   return response.json() as Promise<T>;
 }
 
 export const api = {
-  openSession: (blueprint = "DEMO") =>
-    call<SessionInfo>(`/session/open?blueprint=${blueprint}`, { method: "POST" }),
-
-  issuePaper: (candidateId: string) =>
-    call<IssuedPaper>("/exam/paper", {
+  ceremonyUnlock: (req: UnlockRequest) =>
+    call<UnlockResponse>("/ceremony/unlock", {
       method: "POST",
-      body: JSON.stringify({ candidate_id: candidateId }),
+      body: JSON.stringify(req),
     }),
 
-  receipt: (index: number) => call<Receipt>(`/ledger/receipt/${index}`),
+  checkIn: (req: CheckInRequest) =>
+    call<CheckInResponse>("/exam/check-in", {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
 
-  root: () => call<{ root: string; leaf_count: number }>("/ledger/root"),
+  issuePaper: (req: IssuePaperRequest) =>
+    call<IssuePaperResponse>("/exam/issue-paper", {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
 
-  // MOCK: Exact server time for CBT timer drift correction.
-  // TODO(role 3): Expose a real GET /session/time endpoint.
+  submitExam: (req: SubmitRequest) =>
+    call<SubmitResponse>("/exam/submit", {
+      method: "POST",
+      body: JSON.stringify(req),
+    }),
+
   getServerTime: async () => {
-    // Currently returns local time as a mock
+    // Mock: Returns the current local time as a substitute for server time.
+    // In a real implementation, this would hit GET /session/time.
     return { serverTime: Date.now() };
   },
 };
-
-// TODO(role 4): submit answers once role 3 exposes POST /exam/submit.
-// The response chain (INTEGRITY.md section 8) is hashed server-side.

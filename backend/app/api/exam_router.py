@@ -10,7 +10,7 @@ from app.api.ceremony_router import ceremony_manager
 from app.exam.lifecycle import SessionState
 from app.exam.response_chain import ResponseChain
 from app.exam.seeds import derive_seed, pseudonym
-from app.exam.session_store import session_store
+from app.exam.session_store import session_store, USE_IN_MEMORY_DB
 from app.generation.generator import generate, load_bank, sealed
 from app.ledger.hashing import hash_leaf, hash_receipt
 from app.ledger import merkle
@@ -129,11 +129,12 @@ async def issue_paper(req: IssuePaperRequest):
         session.leaf_index = len(session_leaves)
         session_leaves.append(paper_leaf)
 
-        async for conn in get_db():
-            await conn.execute(
-                "INSERT INTO ledger_leaves (leaf_index, session_id, candidate_pseudonym, leaf_hash) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
-                session.leaf_index, req.session_id, pid, paper_leaf
-            )
+        if not USE_IN_MEMORY_DB:
+            async for conn in get_db():
+                await conn.execute(
+                    "INSERT INTO ledger_leaves (leaf_index, session_id, candidate_pseudonym, leaf_hash) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
+                    session.leaf_index, req.session_id, pid, paper_leaf
+                )
 
     # 5. Transition state: checked_in -> paper_issued -> in_progress
     await session.transition_to(SessionState.PAPER_ISSUED)
@@ -216,15 +217,16 @@ async def submit_exam(req: SubmitRequest):
     await session._save()  # save the receipt
 
     # Save to submission_receipts table
-    async for conn in get_db():
-        await conn.execute(
-            """
-            INSERT INTO submission_receipts (candidate_pseudonym, session_id, paper_hash, response_chain_digest, receipt_hash)
-            VALUES ($1, $2, $3, $4, $5)
-            ON CONFLICT DO NOTHING
-            """,
-            pid, req.session_id, session.paper_hash_hex, req.expected_response_chain, receipt_h
-        )
+    if not USE_IN_MEMORY_DB:
+        async for conn in get_db():
+            await conn.execute(
+                """
+                INSERT INTO submission_receipts (candidate_pseudonym, session_id, paper_hash, response_chain_digest, receipt_hash)
+                VALUES ($1, $2, $3, $4, $5)
+                ON CONFLICT DO NOTHING
+                """,
+                pid, req.session_id, session.paper_hash_hex, req.expected_response_chain, receipt_h
+            )
 
     return {
         "status": "submitted",

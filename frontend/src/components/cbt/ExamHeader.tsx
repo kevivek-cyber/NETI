@@ -1,8 +1,7 @@
 import { useExamTimer } from "../../hooks/useExamTimer";
 import { ConnectionStatus } from "../../hooks/useConnectionStatus";
 import { SaveStatus } from "../../hooks/useAutosave";
-import clsx from "clsx";
-import { Wifi, CloudOff, CheckCircle, Loader2, AlertCircle, User, Building, MonitorSmartphone } from "lucide-react";
+import { CloudOff, CheckCircle, Loader2, AlertCircle, Clock, ShieldCheck, User, MonitorSmartphone } from "lucide-react";
 
 interface ExamHeaderProps {
   examName?: string;
@@ -11,112 +10,133 @@ interface ExamHeaderProps {
   connectionStatus: ConnectionStatus;
   saveStatus: SaveStatus;
   timer: ReturnType<typeof useExamTimer>;
+  onSubmit: () => void;
 }
 
 export function ExamHeader({
-  examName = "NETI Examination",
+  examName = "National Eligibility cum Entrance Test (NEET)",
   candidateId,
   candidateName = "Aarav Sharma",
   connectionStatus,
   saveStatus,
   timer,
+  onSubmit,
 }: ExamHeaderProps) {
-  let timerClass = "timer-normal";
-  if (timer.isWarning) timerClass = "timer-warning";
-  if (timer.isDanger) timerClass = "timer-danger";
-  if (timer.isCritical) timerClass = "timer-critical pulse";
-
+  const isDanger = timer.isDanger || timer.isCritical;
+  
   return (
-    <header className="cbt-header">
+    <header style={{
+      position: 'sticky',
+      top: 0,
+      zIndex: 1000,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      height: '72px',
+      padding: '0 24px',
+      backgroundColor: '#FFFFFF',
+      borderBottom: '1px solid #D9E2EF',
+      boxShadow: '0 2px 8px rgba(23, 42, 70, 0.04)',
+      fontFamily: '"Inter", sans-serif'
+    }}>
       
-      {/* BRANDING */}
-      <div className="header-brand-block">
-        <img 
-          src="/logo.png" 
-          alt="NETI Logo" 
-          style={{ width: '40px', height: '40px', objectFit: 'contain', borderRadius: '4px' }} 
-        />
-        <div className="brand-text">
-          <h1 className="brand-title">NETI</h1>
-          <span className="brand-subtitle">Non-Exploitable Test Integrity</span>
-        </div>
-      </div>
-
-      {/* EXAM NAME */}
-      <div className="header-info-block border-left">
-        <h2 className="exam-title">{examName}</h2>
-        <span className="tag-mock">Mock Test</span>
-      </div>
-
-      {/* CANDIDATE INFO */}
-      <div className="header-info-block border-left">
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <div className="icon-circle"><User size={18} /></div>
-          <div>
-            <div className="info-label">Candidate</div>
-            <div className="info-value-bold">{candidateName}</div>
-            <div className="info-sub">{candidateId}</div>
+      {/* LEFT: Branding */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '32px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          <img src="/logo.png" alt="NETI Logo" style={{ width: '40px', height: '40px', objectFit: 'contain' }} />
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <h1 style={{ margin: 0, fontSize: '20px', color: '#172A46', fontWeight: 800, lineHeight: 1.1 }}>NETI</h1>
+            <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, letterSpacing: '0.05em' }}>
+              NON-EXPLOITABLE<br/>TEST INTEGRITY
+            </span>
           </div>
         </div>
-      </div>
-
-      {/* CENTER INFO */}
-      <div className="header-info-block border-left">
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <div className="icon-circle"><Building size={18} /></div>
-          <div>
-            <div className="info-label">Exam Center</div>
-            <div className="info-value-bold">TCS iON Digital Zone</div>
-            <div className="info-sub">Mumbai</div>
-          </div>
+        
+        <div style={{ paddingLeft: '24px', borderLeft: '1px solid #D9E2EF', height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+           <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Examination</span>
+           <span style={{ fontSize: '14px', color: '#172A46', fontWeight: 700 }}>{examName}</span>
         </div>
       </div>
 
-      {/* SEAT NO */}
-      <div className="header-info-block border-left">
-        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
-          <div className="icon-circle"><MonitorSmartphone size={18} /></div>
-          <div>
-            <div className="info-label">Seat No.</div>
-            <div className="info-value-bold" style={{ fontSize: '1.25rem' }}>A-42</div>
-          </div>
-        </div>
+      {/* CENTER: Candidate & Seat Info */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F5F8FC', padding: '8px 16px', borderRadius: '8px', border: '1px solid #D9E2EF' }}>
+            <User size={16} color="#2563EB" />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+               <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, lineHeight: 1 }}>{candidateId}</span>
+               <span style={{ fontSize: '13px', color: '#172A46', fontWeight: 700, marginTop: '2px' }}>{candidateName}</span>
+            </div>
+         </div>
+         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#F5F8FC', padding: '8px 16px', borderRadius: '8px', border: '1px solid #D9E2EF' }}>
+            <MonitorSmartphone size={16} color="#2563EB" />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+               <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, lineHeight: 1 }}>Seat No.</span>
+               <span style={{ fontSize: '13px', color: '#172A46', fontWeight: 700, marginTop: '2px' }}>A-42</span>
+            </div>
+         </div>
       </div>
 
-      {/* STATUS BLOCK */}
-      <div className="header-status-block border-left">
-        <div className="status-row">
-          <span className="autosave-status" aria-live="polite">
-            {saveStatus === "Saved" && <><CheckCircle size={14} className="text-success" /> <span className="status-text text-success">Saved</span></>}
-            {saveStatus === "Saving..." && <><Loader2 size={14} className="pulse" /> <span className="status-text">Saving...</span></>}
-            {saveStatus === "Offline Saved" && <><CheckCircle size={14} className="text-success" /> <span className="status-text text-success">Offline Saved</span></>}
-            {saveStatus === "Sync Pending" && <><Loader2 size={14} /> <span className="status-text">Sync Pending</span></>}
-            {saveStatus === "Error" && <><AlertCircle size={14} className="text-danger" /> <span className="status-text text-danger">Error</span></>}
-          </span>
-          <span className="status-time">just now</span>
-        </div>
-        <div className="status-row">
-          <span className={clsx("connection-status", `status-${connectionStatus.toLowerCase()}`)} aria-live="polite">
-            {connectionStatus === "Connected" ? <Wifi size={14} color="var(--success)" /> : <CloudOff size={14} color="var(--danger)" />}
-            {connectionStatus === "Connected" && <span className="status-text text-success">Connected</span>}
-            {connectionStatus === "Reconnecting" && <span className="status-text">Reconnecting</span>}
-            {connectionStatus === "Offline" && <span className="status-text text-danger">Offline</span>}
-          </span>
-        </div>
-      </div>
+      {/* RIGHT: Status & Timer */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
+         
+         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '4px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+               {saveStatus === "Saved" && <><CheckCircle size={12} color="#16A34A" /> <span style={{ fontSize: '11px', fontWeight: 600, color: '#16A34A' }}>Saved just now</span></>}
+               {saveStatus === "Saving..." && <><Loader2 size={12} color="#64748B" className="pulse" /> <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748B' }}>Saving...</span></>}
+               {saveStatus === "Offline Saved" && <><CheckCircle size={12} color="#16A34A" /> <span style={{ fontSize: '11px', fontWeight: 600, color: '#16A34A' }}>Offline Saved</span></>}
+               {saveStatus === "Sync Pending" && <><Loader2 size={12} color="#F59E0B" /> <span style={{ fontSize: '11px', fontWeight: 600, color: '#F59E0B' }}>Syncing</span></>}
+               {saveStatus === "Error" && <><AlertCircle size={12} color="#EF4444" /> <span style={{ fontSize: '11px', fontWeight: 600, color: '#EF4444' }}>Save Error</span></>}
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+               {connectionStatus === "Connected" ? <ShieldCheck size={12} color="#16A34A" /> : <CloudOff size={12} color="#EF4444" />}
+               <span style={{ fontSize: '11px', fontWeight: 600, color: connectionStatus === "Connected" ? '#16A34A' : '#EF4444' }}>
+                 {connectionStatus === "Connected" ? "Secure Connection" : "Connection Lost"}
+               </span>
+            </div>
+         </div>
 
-      {/* TIMER */}
-      <div className="header-timer-block border-left">
-        <div 
-          className={clsx("status-item timer", timerClass)}
-          aria-live="polite" 
-          aria-atomic="true" 
-          aria-label={`Time Remaining: ${timer.formattedTime}`}
-        >
-          <span className="timer-label" aria-hidden="true">TIME REMAINING</span>
-          <span className="timer-value mono" aria-hidden="true">{timer.formattedTime}</span>
-          <div className="timer-units"><span>Hr</span><span>Min</span><span>Sec</span></div>
-        </div>
+         <div style={{ height: '32px', width: '1px', backgroundColor: '#D9E2EF' }}></div>
+
+         <div style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: '12px', 
+            background: isDanger ? '#FEF2F2' : '#EFF6FF', 
+            padding: '8px 16px', 
+            borderRadius: '8px', 
+            border: `1px solid ${isDanger ? '#FCA5A5' : '#BFDBFE'}` 
+         }}>
+            <Clock size={20} color={isDanger ? '#EF4444' : '#2563EB'} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+               <span style={{ fontSize: '10px', color: isDanger ? '#DC2626' : '#2563EB', fontWeight: 700, letterSpacing: '0.05em' }}>TIME LEFT</span>
+               <span style={{ fontSize: '20px', color: isDanger ? '#DC2626' : '#172A46', fontWeight: 800, lineHeight: 1, fontFamily: 'monospace' }}>
+                  {timer.formattedTime}
+               </span>
+            </div>
+         </div>
+
+         <button 
+           onClick={onSubmit}
+           className={isDanger ? "pulse" : ""}
+           style={{
+             background: '#DC2626',
+             color: '#FFFFFF',
+             border: 'none',
+             borderRadius: '8px',
+             padding: '8px 24px',
+             fontWeight: 700,
+             fontSize: '15px',
+             cursor: 'pointer',
+             height: '42px',
+             boxShadow: isDanger ? '0 0 12px rgba(220, 38, 38, 0.6)' : 'none',
+             transition: 'all 0.2s',
+             display: 'flex',
+             alignItems: 'center',
+             justifyContent: 'center'
+           }}
+         >
+           Submit
+         </button>
       </div>
 
     </header>

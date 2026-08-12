@@ -52,7 +52,7 @@ class CandidateSession:
                 receipt_json
             )
 
-class SessionStore:
+class PostgresSessionStore:
     """
     Persistent session manager backed by Postgres.
     """
@@ -83,5 +83,28 @@ class SessionStore:
             
             return session
 
+class InMemorySessionStore:
+    """
+    Isolated in-memory session manager for local dev without Postgres.
+    """
+    def __init__(self):
+        self._sessions = {}
+        
+    async def get_or_create_session(self, candidate_pseudonym: str, session_id: str) -> CandidateSession:
+        if candidate_pseudonym not in self._sessions:
+            session = CandidateSession(candidate_pseudonym, session_id)
+            # Patch _save so it updates the dict instead of DB
+            async def _mock_save():
+                self._sessions[candidate_pseudonym] = session
+            session._save = _mock_save
+            await session._save()
+        return self._sessions[candidate_pseudonym]
+
+    async def get_session(self, candidate_pseudonym: str) -> CandidateSession | None:
+        return self._sessions.get(candidate_pseudonym)
+
+import os
+USE_IN_MEMORY_DB = os.getenv("USE_IN_MEMORY_DB", "0") == "1"
+
 # Global singleton instance
-session_store = SessionStore()
+session_store = InMemorySessionStore() if USE_IN_MEMORY_DB else PostgresSessionStore()

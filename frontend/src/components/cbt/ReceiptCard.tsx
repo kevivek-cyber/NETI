@@ -1,7 +1,7 @@
-import type { Receipt } from "../../api/api";
+import type { ReceiptPayload } from "../../api/api";
 import { CheckCircle, ShieldCheck, Download, Copy } from "lucide-react";
 
-export function ReceiptCard({ receipt, paperHash }: { receipt: Receipt; paperHash: string }) {
+export function ReceiptCard({ receipt, paperHash }: { receipt: ReceiptPayload; paperHash: string }) {
   return (
     <>
       <header className="cbt-header" style={{ marginBottom: '2rem' }}>
@@ -34,13 +34,13 @@ export function ReceiptCard({ receipt, paperHash }: { receipt: Receipt; paperHas
 
             <dl className="receipt">
               <dt>Receipt ID / Index</dt>
-              <dd className="mono" style={{ fontSize: '1.1rem' }}>#{receipt.leaf_index}</dd>
+              <dd className="mono" style={{ fontSize: '1.1rem' }}>#{receipt.inclusion_proof.index}</dd>
 
               <dt>Paper Hash</dt>
               <dd className="mono">{paperHash}</dd>
 
               <dt>Ledger Root</dt>
-              <dd className="mono">{receipt.root}</dd>
+              <dd className="mono">{receipt.merkle_root}</dd>
               
               <dt>Verification Status</dt>
               <dd>
@@ -50,10 +50,10 @@ export function ReceiptCard({ receipt, paperHash }: { receipt: Receipt; paperHas
 
             <details style={{ marginTop: '2rem', background: '#F8FAFC', padding: '1rem', borderRadius: 'var(--radius)', border: '1px solid var(--border)' }}>
               <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--text)' }}>
-                View Merkle Inclusion Proof ({receipt.path.length} steps)
+                View Merkle Inclusion Proof ({receipt.inclusion_proof.path.length} steps)
               </summary>
               <ol className="proof">
-                {receipt.path.map((step: { side: "L" | "R"; hash: string }, i: number) => (
+                {receipt.inclusion_proof.path.map((step: { side: "L" | "R"; hash: string }, i: number) => (
                   <li key={i}>
                     <span className="tag" style={{ background: step.side === 'L' ? '#E2E8F0' : '#CBD5E1' }}>{step.side}</span>
                     <span className="mono">{step.hash}</span>
