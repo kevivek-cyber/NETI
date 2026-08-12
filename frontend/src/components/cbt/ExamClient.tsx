@@ -13,12 +13,18 @@ import { QuestionInfo } from "./QuestionInfo";
 import { SubmitConfirmation } from "./SubmitConfirmation";
 import { calculateExamStats } from "../../utils/examStats";
 
+export function getDisplaySubject(rawSubject: string): Subject {
+  const upper = rawSubject.toUpperCase();
+  if (upper === "BOTANY" || upper === "ZOOLOGY") return "BIOLOGY";
+  return upper as Subject;
+}
+
 interface Props {
   candidateId: string;
   paperHash: string;
   paper: SealedPaper;
   initialState: AutosavePayload | null;
-  onSubmit: (answers: Record<number, number>) => void;
+  onSubmit: (events: any[], expectedResponseChain: string) => void;
   startedAt: number;
   durationSeconds: number;
 }
@@ -37,13 +43,13 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
   
   const question = paper.questions[current];
   const [activeSubject, setActiveSubject] = useState<Subject>(
-    (question.subject.toUpperCase() as Subject) || "PHYSICS"
+    getDisplaySubject(question.subject)
   );
   
   const stats = calculateExamStats(paper.questions.length, answers, markedForReview, visited);
 
   // Subject-specific stats
-  const subjectQuestions = paper.questions.filter(q => q.subject.toUpperCase() === activeSubject);
+  const subjectQuestions = paper.questions.filter(q => getDisplaySubject(q.subject) === activeSubject);
   
   // Calculate local subject index
   const subjectQuestionIndex = subjectQuestions.findIndex(q => q.number === question.number);
@@ -62,7 +68,7 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
 
   const subjectStats = calculateExamStats(subjectQuestions.length, subjectAnswers, subjectMarked, subjectVisited);
 
-  const saveStatus = useAutosave(candidateId, {
+  const { status: saveStatus, addAnswerEvent, getEvents, getExpectedChain } = useAutosave(candidateId, {
     answers,
     markedForReview,
     visited,
@@ -76,9 +82,9 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
   // Auto-submit when time expires
   useEffect(() => {
     if (timer.isExpired) {
-      onSubmit(answers);
+      onSubmit(getEvents(), getExpectedChain());
     }
-  }, [timer.isExpired, onSubmit, answers]);
+  }, [timer.isExpired, onSubmit, getEvents, getExpectedChain]);
 
   // Kiosk Mode Protections
   useEffect(() => {
@@ -124,7 +130,8 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
 
   const handleAnswer = useCallback((optionIndex: number) => {
     setAnswers((prev) => ({ ...prev, [question.number]: optionIndex }));
-  }, [question.number]);
+    addAnswerEvent(question.item_id, optionIndex);
+  }, [question.number, question.item_id, addAnswerEvent]);
 
   const clearResponse = useCallback(() => {
     setAnswers((prev) => {
@@ -137,28 +144,28 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
   const handleQuestionSelect = (index: number) => {
     setCurrent(index);
     setVisited(prev => ({ ...prev, [index]: true }));
-    setActiveSubject(paper.questions[index].subject.toUpperCase() as Subject);
+    setActiveSubject(getDisplaySubject(paper.questions[index].subject));
   };
 
   const goPrevious = useCallback(() => {
     const prevIndex = Math.max(0, current - 1);
     setCurrent(prevIndex);
     setVisited(prev => ({ ...prev, [prevIndex]: true }));
-    setActiveSubject(paper.questions[prevIndex].subject.toUpperCase() as Subject);
+    setActiveSubject(getDisplaySubject(paper.questions[prevIndex].subject));
   }, [current, paper.questions]);
 
   const goNext = useCallback(() => {
     const nextIndex = Math.min(paper.questions.length - 1, current + 1);
     setCurrent(nextIndex);
     setVisited(prev => ({ ...prev, [nextIndex]: true }));
-    setActiveSubject(paper.questions[nextIndex].subject.toUpperCase() as Subject);
+    setActiveSubject(getDisplaySubject(paper.questions[nextIndex].subject));
   }, [current, paper.questions]);
 
   const handleSubjectChange = (subject: Subject) => {
     setActiveSubject(subject);
     
     // Find the first unvisited question in this subject, or default to the first question in the subject
-    const subjQs = paper.questions.filter(q => q.subject.toUpperCase() === subject);
+    const subjQs = paper.questions.filter(q => getDisplaySubject(q.subject) === subject);
     if (subjQs.length === 0) return;
 
     let targetGlobalIndex = subjQs[0].number - 1;
@@ -189,7 +196,7 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
       {showSubmitConfirm && (
         <SubmitConfirmation
           stats={stats}
-          onConfirm={() => onSubmit(answers)}
+          onConfirm={() => onSubmit(getEvents(), getExpectedChain())}
           onCancel={() => setShowSubmitConfirm(false)}
         />
       )}
@@ -201,6 +208,7 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
         connectionStatus={connectionStatus}
         saveStatus={saveStatus}
         timer={timer}
+        onSubmit={() => setShowSubmitConfirm(true)}
       />
 
       <div className="cbt-main-wrapper">
@@ -212,6 +220,7 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
           visited={visited}
           onQuestionSelect={handleQuestionSelect}
           activeSubject={activeSubject}
+          onSubjectChange={handleSubjectChange}
           overallStats={stats}
         />
 

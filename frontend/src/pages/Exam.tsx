@@ -1,8 +1,7 @@
 import { useLocation, Navigate, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { ExamClient } from "../components/cbt/ExamClient";
-import { IssuedPaperMock, SessionInfoMock } from "../api/api-mocks";
-import { api } from "../api/api";
+import { api, SubmitRequest, ResponseEvent } from "../api/api";
 import { AutosavePayload } from "../hooks/useAutosave";
 
 export function Exam() {
@@ -12,8 +11,8 @@ export function Exam() {
   const [error, setError] = useState<string | null>(null);
 
   const state = location.state as { 
-    paper: IssuedPaperMock, 
-    session: SessionInfoMock,
+    paper: any;
+    session: any;
     candidateId: string,
     restoredState: AutosavePayload | null
   } | null;
@@ -24,14 +23,19 @@ export function Exam() {
 
   const { paper, session, candidateId, restoredState } = state;
 
-  async function submit(finalAnswers: Record<number, number>) {
+  async function submit(events: ResponseEvent[], expectedResponseChain: string) {
     setBusy(true);
     try {
-      // POST answers -> get receipt
-      const receipt = await api.receipt(paper.leaf_index);
-      navigate("/receipt", { state: { receipt, paperHash: paper.paper_hash } });
-    } catch (e) {
-      setError(String(e));
+      const payload: SubmitRequest = {
+        candidate_id: candidateId,
+        session_id: session.session_id,
+        events,
+        expected_response_chain: expectedResponseChain,
+      };
+      const res = await api.submitExam(payload);
+      navigate("/receipt", { state: { receipt: res.receipt, paperHash: paper.paper_hash } });
+    } catch (e: any) {
+      setError(e.message || String(e));
     } finally {
       setBusy(false);
     }
@@ -40,7 +44,7 @@ export function Exam() {
   return (
     <>
       <p className="muted small mono">
-        paper {paper.paper_hash.slice(0, 32)}… · ledger #{paper.leaf_index}
+        paper {paper.paper_hash.slice(0, 32)}…
       </p>
       {error && <p className="error">{error}</p>}
       {busy ? (

@@ -5,6 +5,7 @@ import { Checkin } from './pages/Checkin';
 import { Instructions } from './pages/Instructions';
 import { Exam } from './pages/Exam';
 import { Receipt } from './pages/Receipt';
+import { Ceremony } from './pages/Ceremony';
 
 export default function App() {
   return (
@@ -17,6 +18,8 @@ export default function App() {
           <Route path="instructions" element={<Instructions />} />
           <Route path="receipt" element={<Receipt />} />
         </Route>
+        {/* Standalone routes without the layout container */}
+        <Route path="/ceremony" element={<Ceremony />} />
         {/* Exam page must bypass the Layout wrapper to be full screen edge-to-edge */}
         <Route path="/exam" element={<Exam />} />
       </Routes>

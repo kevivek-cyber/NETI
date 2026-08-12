@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { apiMocks } from "../api/api-mocks";
+import { api } from "../api/api";
 
 /**
  * useExamTimer hooks into the server time to provide a cryptographically 
@@ -14,7 +14,7 @@ export function useExamTimer(durationSeconds: number, startTimeMs: number) {
   const syncTime = useCallback(async () => {
     try {
       const t0 = performance.now();
-      const res = await apiMocks.getServerTime();
+      const res = await api.getServerTime();
       const t1 = performance.now();
       const latency = (t1 - t0) / 2;
       const estimatedServerTime = res.serverTime + latency;
