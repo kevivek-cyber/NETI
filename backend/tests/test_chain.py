@@ -143,7 +143,7 @@ def test_block_from_another_chain_is_rejected(chain, officials, roster):
     chain.append(make_block(chain, officials))
     other = Chain(session_id="2026-NEET-UG", centre_id="KA-BLR-002", roster=roster)
     stray = make_block(other, officials)
-    with pytest.raises(ChainError, match="prev_block_hash|height"):
+    with pytest.raises(ChainError, match="prev_block_hash|height|centre"):
         chain.append(stray)
 
 
@@ -235,3 +235,37 @@ def test_roster_hash_changes_when_an_official_changes(roster):
     _, pub = generate_keypair()
     roster["OFF-EXTRA-01"] = Official("OFF-EXTRA-01", Institution.CENTRE, pub)
     assert roster_hash(roster) != before
+
+
+def test_verify_rejects_a_chain_checked_against_a_swapped_roster(chain, officials, roster):
+    """CUSTODY.md §2.2's whole defence is that the roster is committed in
+    genesis and deviation is visible. `append` already refused a swapped
+    roster; `verify` — the standalone check a third party runs on a
+    published bundle — must refuse it too, independently, because a
+    bundle never went through `append` at all."""
+    chain.append(make_block(chain, officials))
+    chain.append(make_block(chain, officials, leaf_count=4, leaves=leaves_for(4)))
+    chain.verify()  # sanity: the real roster verifies fine
+
+    _, pub = generate_keypair()
+    swapped_roster = dict(roster)
+    swapped_roster["OFF-AUTH-01"] = Official("OFF-AUTH-01", Institution.AUTHORITY, pub)
+    forged = Chain(session_id=chain.session_id, centre_id=chain.centre_id, roster=swapped_roster)
+    forged.blocks = list(chain.blocks)
+
+    with pytest.raises(ChainError, match="official_roster_hash"):
+        forged.verify()
+
+
+def test_verify_rejects_a_block_from_the_wrong_centre(chain, officials, roster):
+    """A block whose centre_id was silently altered after signing must not
+    verify — centre_id is not part of the signature-independent checks
+    `verify` used to run, only the ones `append` ran."""
+    chain.append(make_block(chain, officials))
+    tampered_header = chain.blocks[0].header.__class__(
+        **{**chain.blocks[0].header.as_dict(), "centre_id": "OTHER-CENTRE"}
+    )
+    chain.blocks[0] = Block(tampered_header, chain.blocks[0].signatures)
+
+    with pytest.raises(ChainError, match="centre"):
+        chain.verify()

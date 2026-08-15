@@ -33,11 +33,12 @@ candidate's paper, because the permitted set was fixed before the exam.
 
 from __future__ import annotations
 
+import hmac
 from dataclasses import dataclass, field
 from typing import Any
 
 from .canonical import Domain, canonical_bytes, digest
-from .signing import Official, Signature, SigningError, verify_quorum
+from .signing import Official, Signature, SigningError, roster_hash, verify_quorum
 
 # The genesis block has no predecessor. 32 zero bytes, never a hash of
 # anything — a real hash here would imply a block that does not exist.
@@ -154,8 +155,6 @@ class Chain:
         Callers never set height, prev_block_hash or first_leaf_index —
         those come from the chain, so a caller cannot accidentally fork it.
         """
-        from .signing import roster_hash
-
         return BlockHeader(
             version=BLOCK_VERSION,
             session_id=self.session_id,
@@ -189,6 +188,17 @@ class Chain:
             raise ChainError(
                 f"block belongs to session {header.session_id}, chain is {self.session_id}"
             )
+        if header.centre_id != self.centre_id:
+            raise ChainError(
+                f"block belongs to centre {header.centre_id}, chain is {self.centre_id}"
+            )
+        if not hmac.compare_digest(
+            header.official_roster_hash, roster_hash(self.roster).hex()
+        ):
+            raise ChainError(
+                "official_roster_hash does not match this chain's roster; the "
+                "set of permitted signers was fixed before T=0 and cannot change"
+            )
         if header.height != self.height:
             raise ChainError(
                 f"block height {header.height} does not follow chain height {self.height}"
@@ -221,21 +231,63 @@ class Chain:
         What the standalone verifier runs. Deliberately recomputes rather
         than trusting anything cached: the point is to check the record,
         not to check our own bookkeeping about the record.
+
+        This must stay at least as strict as `append`. `append` guards the
+        chain as we build it; `verify` is the only thing standing between a
+        third party and a published bundle, and that bundle arrives from an
+        untrusted source. Any check that exists in one and not the other is
+        a hole: a bundle that could never have been appended would still
+        verify.
         """
         prev = GENESIS_PREV
         expected_leaf_index = 0
+        expected_roster = roster_hash(self.roster).hex()
 
         for i, block in enumerate(self.blocks):
             header = block.header
 
+            if header.version != BLOCK_VERSION:
+                raise ChainError(
+                    f"block at height {i} has unknown version {header.version}"
+                )
+            if header.session_id != self.session_id:
+                raise ChainError(
+                    f"block at height {i} belongs to session {header.session_id}, "
+                    f"chain is {self.session_id}"
+                )
+            if header.centre_id != self.centre_id:
+                raise ChainError(
+                    f"block at height {i} belongs to centre {header.centre_id}, "
+                    f"chain is {self.centre_id}"
+                )
             if header.height != i:
                 raise ChainError(f"block at position {i} claims height {header.height}")
             if header.prev_block_hash != prev.hex():
                 raise ChainError(f"chain broken at height {i}: prev_block_hash mismatch")
             if header.first_leaf_index != expected_leaf_index:
                 raise ChainError(f"leaf index gap at height {i}")
+            if header.leaf_count < 0:
+                # Without this a negative count rewinds expected_leaf_index and
+                # lets a later block reuse indices that are already committed.
+                raise ChainError(f"block at height {i} has negative leaf_count")
             if i == 0 and header.leaf_count != 0:
                 raise ChainError("genesis block must carry zero leaves")
+            if i > 0 and header.leaf_count == 0:
+                raise ChainError(
+                    f"block at height {i} carries zero leaves; only genesis may be empty"
+                )
+
+            # The roster was committed in the genesis block before T=0
+            # precisely so that swapping signers later is visible
+            # (CUSTODY.md §2.2). Nothing makes it visible unless the
+            # committed hash is compared against the roster actually being
+            # used to check the signatures, which is what this does.
+            if not hmac.compare_digest(header.official_roster_hash, expected_roster):
+                raise ChainError(
+                    f"block at height {i} commits official_roster_hash "
+                    f"{header.official_roster_hash} but is being verified against a "
+                    "different roster; signers were fixed before the exam"
+                )
 
             try:
                 verify_quorum(block.hash, list(block.signatures), self.roster)
