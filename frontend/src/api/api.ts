@@ -1,6 +1,13 @@
 /**
  * Backend contract. This file IS the interface between role 3 and role 4 —
  * if the API changes, change it here first and the compiler finds the rest.
+ *
+ * Kept as a literal mirror of backend/app/api/{exam_router,ceremony_router}.py
+ * — every path, request body, and response shape below is taken directly
+ * from those routers' Pydantic models, not from an earlier plan for them.
+ * If this drifts from the routers again, every call in this file breaks
+ * against a live backend even though `npm run build` stays green, because
+ * nothing here is checked against the actual FastAPI schema at build time.
  */
 
 export interface Question {
@@ -18,31 +25,48 @@ export interface SealedPaper {
   questions: Question[];
 }
 
+// Response of POST /exam/issue-paper. Note what the backend does NOT
+// return: no pseudonym, no leaf_index. The candidate is identified to the
+// backend by candidate_id on every call (it re-derives the pseudonym
+// itself); leaf_index is assigned server-side and only surfaces later,
+// inside the inclusion proof on the /exam/submit receipt.
 export interface IssuedPaper {
-  pseudonym: string;
-  leaf_index: number;
+  candidate_id: string;
   paper_hash: string;
+  session_state: string;
   paper: SealedPaper;
-  // TODO(role 3): Expose exam start time for timer calculation
-  started_at?: number;
+  // TODO(role 3): expose exam start time / duration. Neither issue-paper
+  // nor any other endpoint currently returns them; the CBT timer has
+  // nothing real to read yet. See useExamTimer.
 }
 
-export interface SessionInfo {
-  session_id: string;
-  blueprint: string;
-  questions: number;
-  marks: number;
-  bank_version: string;
-  blueprint_hash: string;
-  // TODO(role 3): Expose exam duration
-  duration_seconds?: number;
+export interface ResponseEvent {
+  question_id: string;
+  selected_option_index: number;
+  timestamp_iso: string;
+}
+
+export interface InclusionProof {
+  index: number;
+  leaf: string;
+  path: { side: "L" | "R"; hash: string }[];
 }
 
 export interface Receipt {
-  leaf_index: number;
-  leaf: string;
-  root: string;
-  path: { side: "L" | "R"; hash: string }[];
+  candidate_pseudonym: string;
+  session_id: string;
+  paper_hash: string;
+  response_chain_digest: string;
+  merkle_root: string;
+  inclusion_proof: InclusionProof;
+}
+
+export interface SubmitResult {
+  status: string;
+  candidate_id: string;
+  session_state: string;
+  receipt: Receipt;
+  receipt_hash: string;
 }
 
 // Dev: Vite proxies /api to localhost:8000.
@@ -61,26 +85,60 @@ async function call<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-  openSession: (blueprint = "DEMO") =>
-    call<SessionInfo>(`/session/open?blueprint=${blueprint}`, { method: "POST" }),
+  checkIn: (candidateId: string, sessionId: string) =>
+    call<{ status: string; candidate_id: string; session_state: string }>(
+      "/exam/check-in",
+      { method: "POST", body: JSON.stringify({ candidate_id: candidateId, session_id: sessionId }) },
+    ),
 
-  issuePaper: (candidateId: string) =>
-    call<IssuedPaper>("/exam/paper", {
+  issuePaper: (candidateId: string, sessionId: string) =>
+    call<IssuedPaper>("/exam/issue-paper", {
       method: "POST",
-      body: JSON.stringify({ candidate_id: candidateId }),
+      body: JSON.stringify({ candidate_id: candidateId, session_id: sessionId }),
     }),
 
-  receipt: (index: number) => call<Receipt>(`/ledger/receipt/${index}`),
+  submitExam: (
+    candidateId: string,
+    sessionId: string,
+    events: ResponseEvent[],
+    expectedResponseChain: string,
+  ) =>
+    call<SubmitResult>("/exam/submit", {
+      method: "POST",
+      body: JSON.stringify({
+        candidate_id: candidateId,
+        session_id: sessionId,
+        events,
+        expected_response_chain: expectedResponseChain,
+      }),
+    }),
 
-  root: () => call<{ root: string; leaf_count: number }>("/ledger/root"),
-
-  // MOCK: Exact server time for CBT timer drift correction.
-  // TODO(role 3): Expose a real GET /session/time endpoint.
+  // MOCK: no backend endpoint exposes server time or an exam-configuration
+  // lookup yet (there is no /session route at all — the earlier
+  // `openSession` here pointed at one that was never built). Left as a
+  // local-time stand-in until role 3 adds one; do not remove this comment
+  // when that lands or the next person re-adds a call to a route that
+  // still doesn't exist.
   getServerTime: async () => {
-    // Currently returns local time as a mock
     return { serverTime: Date.now() };
   },
 };
 
-// TODO(role 4): submit answers once role 3 exposes POST /exam/submit.
-// The response chain (INTEGRITY.md section 8) is hashed server-side.
+// TODO(role 4): `submitExam` needs `events` — the ordered, timestamped log
+// of every answer change during the exam — and `expectedResponseChain`,
+// the final SHA-256 hash of replaying that log per INTEGRITY.md §8. Neither
+// exists on the client today: ExamClient/useAutosave only ever keep the
+// current answers snapshot, not a per-change event history, and there is
+// no client-side implementation of the domain-separated hashing in
+// backend/app/ledger/canonical.py + hashing.py to fold that log into a
+// digest. Building that hashing needs to reproduce canonical_bytes()
+// (sorted-key, no-whitespace JSON, UTF-8) and the 0x03 domain tag exactly,
+// since backend/app/ledger/hashing.py documents this as "a permanent
+// public contract" that a standalone verifier depends on byte-for-byte —
+// get it wrong here and every receipt this client produces is invalid.
+// CUSTODY.md §6.3 anticipates this exact browser-side hashing (WebCrypto,
+// no server) for the receipt verifier; the same routine can build the
+// submission digest here. Do not invent a simplified hash in the
+// meantime — a client that "submits" with a wrong digest fails
+// ResponseChain.verify_chain server-side and the candidate's exam is
+// rejected, which is worse than the button being visibly unfinished.

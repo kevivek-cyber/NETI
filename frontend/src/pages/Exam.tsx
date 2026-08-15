@@ -1,13 +1,11 @@
-import { useLocation, Navigate, useNavigate } from "react-router-dom";
+import { useLocation, Navigate } from "react-router-dom";
 import { useState } from "react";
 import { ExamClient } from "../components/cbt/ExamClient";
 import { IssuedPaperMock, SessionInfoMock } from "../api/api-mocks";
-import { api } from "../api/api";
 import { AutosavePayload } from "../hooks/useAutosave";
 
 export function Exam() {
   const location = useLocation();
-  const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,9 +25,25 @@ export function Exam() {
   async function submit(finalAnswers: Record<number, number>) {
     setBusy(true);
     try {
-      // POST answers -> get receipt
-      const receipt = await api.receipt(paper.leaf_index);
-      navigate("/receipt", { state: { receipt, paperHash: paper.paper_hash } });
+      // TODO(role 4): wire this to api.submitExam once ExamClient tracks a
+      // timestamped event log (question_id, selected_option_index,
+      // timestamp_iso) for every answer change, not just the final
+      // snapshot in `finalAnswers` — and once a client-side implementation
+      // of the response-chain hashing (INTEGRITY.md §8, matching
+      // backend/app/ledger/canonical.py + hashing.py byte-for-byte) exists
+      // to fold that log into `expected_response_chain`. See the TODO at
+      // the bottom of api.ts for why that hashing can't be stubbed.
+      //
+      // The previous version of this function called `api.receipt(...)`,
+      // a method that never existed on the real backend and, even as a
+      // stub, never sent `finalAnswers` anywhere — it silently discarded
+      // the candidate's answers instead of submitting them. Left failing
+      // loudly instead of silently, until the pieces above exist.
+      // (Re-add `useNavigate` and navigate to "/receipt" with the real
+      // receipt on success once this actually calls api.submitExam.)
+      throw new Error(
+        "Exam submission is not wired to the backend yet — see the TODO in Exam.tsx"
+      );
     } catch (e) {
       setError(String(e));
     } finally {

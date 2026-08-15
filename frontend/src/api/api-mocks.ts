@@ -1,10 +1,26 @@
-import { api, type SessionInfo, type IssuedPaper } from './api';
+import { api, type IssuedPaper } from './api';
 
-export interface SessionInfoMock extends SessionInfo {
+// SessionInfo has no backing endpoint — there is no /session route on the
+// backend at all (the old api.ts's `openSession` pointed at one that was
+// never built). Defined here, not in api.ts, because api.ts is meant to be
+// a pure reflection of the backend contract and this isn't part of it yet.
+// TODO(role 3): once a real session/config endpoint exists, move this
+// shape (or whatever it actually returns) into api.ts and delete the mock.
+export interface SessionInfoMock {
+  session_id: string;
+  blueprint: string;
+  questions: number;
+  marks: number;
+  bank_version: string;
+  blueprint_hash: string;
   duration_seconds: number;
 }
 
 export interface IssuedPaperMock extends IssuedPaper {
+  // Mock-only: real issue-paper doesn't return either of these yet (see
+  // the TODO on IssuedPaper in api.ts). leaf_index in particular only
+  // surfaces for real inside a submit receipt's inclusion_proof.index.
+  leaf_index: number;
   started_at: number;
 }
 
@@ -32,9 +48,10 @@ export const apiMocks = {
 
   issuePaper: async (candidateId: string): Promise<IssuedPaperMock> => {
     // Mocking to avoid backend 500 error during frontend development
-    // const paper = await api.issuePaper(candidateId);
+    // const paper = await api.issuePaper(candidateId, sessionId);
     return {
-      pseudonym: candidateId,
+      candidate_id: candidateId,
+      session_state: "in_progress",
       leaf_index: 42,
       paper_hash: "mock-paper-hash-abcdef1234567890",
       paper: {
