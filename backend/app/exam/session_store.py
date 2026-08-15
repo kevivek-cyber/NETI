@@ -33,15 +33,21 @@ class CandidateSession:
 
     async def _save(self):
         receipt_json = json.dumps(self.receipt) if self.receipt else None
-        
+
         async for conn in get_db():
             await conn.execute(
                 """
-                INSERT INTO candidate_sessions (candidate_pseudonym, session_id, state, paper_hash_hex, receipt)
-                VALUES ($1, $2, $3, $4, $5)
+                INSERT INTO candidate_sessions (candidate_pseudonym, session_id, state, paper_hash_hex, leaf_index, receipt)
+                VALUES ($1, $2, $3, $4, $5, $6)
                 ON CONFLICT (candidate_pseudonym) DO UPDATE SET
                     state = EXCLUDED.state,
                     paper_hash_hex = EXCLUDED.paper_hash_hex,
+                    -- Never clear an assigned leaf index. Once a candidate
+                    -- holds a leaf it is theirs for the session; letting a
+                    -- later save write NULL over it would hand them a second
+                    -- leaf on re-issue, which is the duplicate this field
+                    -- exists to prevent.
+                    leaf_index = COALESCE(EXCLUDED.leaf_index, candidate_sessions.leaf_index),
                     receipt = EXCLUDED.receipt,
                     updated_at = CURRENT_TIMESTAMP
                 """,
@@ -49,6 +55,7 @@ class CandidateSession:
                 self.session_id,
                 self.state.value,
                 self.paper_hash_hex,
+                self.leaf_index,
                 receipt_json
             )
 
@@ -67,20 +74,21 @@ class SessionStore:
     async def get_session(self, candidate_pseudonym: str) -> CandidateSession | None:
         async for conn in get_db():
             row = await conn.fetchrow(
-                "SELECT session_id, state, paper_hash_hex, receipt FROM candidate_sessions WHERE candidate_pseudonym = $1",
+                "SELECT session_id, state, paper_hash_hex, leaf_index, receipt FROM candidate_sessions WHERE candidate_pseudonym = $1",
                 candidate_pseudonym
             )
             if row is None:
                 return None
-            
+
             session = CandidateSession(candidate_pseudonym, row['session_id'])
             session.state = SessionState(row['state'])
             session.paper_hash_hex = row['paper_hash_hex']
+            session.leaf_index = row['leaf_index']
             if row['receipt']:
                 session.receipt = json.loads(row['receipt'])
             if session.paper_hash_hex:
                 session.response_chain = ResponseChain(paper_hash_hex=session.paper_hash_hex)
-            
+
             return session
 
 # Global singleton instance

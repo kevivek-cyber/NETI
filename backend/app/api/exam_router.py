@@ -34,8 +34,26 @@ def _pseudonymise(candidate_id: str) -> str:
 
 
 
-# In-memory session leaf registry for Merkle tree batching
-session_leaves: list[str] = []
+async def _session_leaves(session_id: str) -> list[str]:
+    """This session's leaves, in leaf_index order, straight from the ledger.
+
+    Previously kept as an in-memory list. That list is process-local: it
+    resets to empty on every restart while the database (and, now that it
+    is persisted, each candidate's own leaf_index) does not. After a
+    restart the in-memory list would restart numbering from 0 and hand a
+    newly-issued candidate an index that a previous candidate already
+    holds in the database, corrupting the Merkle tree for the whole
+    session. Reading from the table it was always meant to mirror removes
+    the divergence.
+    """
+    leaves: list[str] = []
+    async for conn in get_db():
+        rows = await conn.fetch(
+            "SELECT leaf_hash FROM ledger_leaves WHERE session_id = $1 ORDER BY leaf_index",
+            session_id,
+        )
+        leaves = [r["leaf_hash"] for r in rows]
+    return leaves
 
 
 class CheckInRequest(BaseModel):
@@ -126,12 +144,18 @@ async def issue_paper(req: IssuePaperRequest):
     # terminal crash, say) reuses their existing leaf rather than appending
     # a duplicate.
     if session.leaf_index is None:
-        session.leaf_index = len(session_leaves)
-        session_leaves.append(paper_leaf)
-
+        # TODO(role 1): serialize concurrent issuance for a session (e.g. a
+        # per-session advisory lock) — two candidates issued at the same
+        # instant can both read the same MAX(leaf_index) here and collide.
+        # Not a risk for the single-kiosk demo this milestone targets.
         async for conn in get_db():
+            next_index = await conn.fetchval(
+                "SELECT COALESCE(MAX(leaf_index) + 1, 0) FROM ledger_leaves WHERE session_id = $1",
+                req.session_id,
+            )
+            session.leaf_index = next_index
             await conn.execute(
-                "INSERT INTO ledger_leaves (leaf_index, session_id, candidate_pseudonym, leaf_hash) VALUES ($1, $2, $3, $4) ON CONFLICT DO NOTHING",
+                "INSERT INTO ledger_leaves (leaf_index, session_id, candidate_pseudonym, leaf_hash) VALUES ($1, $2, $3, $4) ON CONFLICT (session_id, candidate_pseudonym) DO NOTHING",
                 session.leaf_index, req.session_id, pid, paper_leaf
             )
 
@@ -184,7 +208,7 @@ async def submit_exam(req: SubmitRequest):
     # own leaf_index rather than by searching for their paper hash: two
     # candidates can legitimately hold the same hash, and a search would
     # return the first one's proof.
-    leaves = [bytes.fromhex(h) for h in session_leaves]
+    leaves = [bytes.fromhex(h) for h in await _session_leaves(req.session_id)]
     root_hex = merkle.root(leaves).hex()
 
     if session.leaf_index is None:
