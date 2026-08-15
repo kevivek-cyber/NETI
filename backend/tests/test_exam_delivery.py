@@ -154,6 +154,19 @@ def test_response_chain_detects_tampering():
     assert not ResponseChain.verify_chain(paper_hash, tampered, chain.current_r_hex)
 
 
+def test_response_chain_rejects_malformed_digest_without_raising():
+    """expected_r_n comes straight off the wire from the client. A digest
+    that is not even valid hex must be rejected the same way a wrong-but-
+    valid one is (return False), not bubble a TypeError out of hmac.compare_digest
+    into a 500."""
+    from app.exam.response_chain import ResponseChain
+
+    paper_hash = hashlib.sha256(b"paper").hexdigest()
+    events = [{"q": 1, "opt": 2}]
+
+    assert ResponseChain.verify_chain(paper_hash, events, "not-hex-☃") is False
+
+
 # --- session --------------------------------------------------------------
 
 def test_session_tracks_leaf_index():

@@ -10,12 +10,22 @@ CREATE TABLE IF NOT EXISTS candidate_sessions (
     session_id VARCHAR(64) NOT NULL,
     state VARCHAR(32) NOT NULL DEFAULT 'registered',
     paper_hash_hex CHAR(64),
+    -- Position of this candidate's leaf in the session Merkle tree. Must
+    -- survive a restart: it is what makes re-issue reuse the existing leaf
+    -- instead of appending a duplicate, and what lets the receipt prove
+    -- inclusion by index rather than by searching for a hash that may repeat.
+    leaf_index BIGINT,
     receipt JSONB,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Block headers. Every column of BlockHeader must be present and readable:
+-- verification recomputes block_hash = SHA-256(0x02 || canonical_bytes(header)),
+-- so a header field that is not stored is a block that can never be
+-- re-verified from the database.
 CREATE TABLE IF NOT EXISTS ledger_blocks (
     height BIGINT PRIMARY KEY,
+    version INT NOT NULL,
     session_id VARCHAR(64) NOT NULL,
     centre_id VARCHAR(64) NOT NULL,
     block_hash CHAR(64) NOT NULL UNIQUE,
@@ -26,21 +36,47 @@ CREATE TABLE IF NOT EXISTS ledger_blocks (
     bank_version_hash CHAR(64) NOT NULL,
     generator_source_hash CHAR(64) NOT NULL,
     blueprint_hash CHAR(64) NOT NULL,
+    official_roster_hash CHAR(64) NOT NULL,
     ceremony_id VARCHAR(64) NOT NULL,
     opened_at TIMESTAMPTZ NOT NULL,
     closed_at TIMESTAMPTZ NOT NULL,
-    signature VARCHAR(256) NOT NULL,
     created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+-- A block carries THREE personal signatures from three different
+-- institutions (CUSTODY.md §4), not one institutional signature. A single
+-- `signature` column on ledger_blocks cannot represent a valid block, so
+-- the signatures live here, one row each.
+CREATE TABLE IF NOT EXISTS ledger_block_signatures (
+    block_height BIGINT NOT NULL REFERENCES ledger_blocks(height),
+    official_id VARCHAR(64) NOT NULL,
+    institution VARCHAR(16) NOT NULL,  -- 'centre' | 'independent' | 'authority'
+    signature CHAR(128) NOT NULL,      -- Ed25519, 64 bytes hex-encoded
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (block_height, official_id)
 );
 
 -- Ledger Leaves Table (Paper SHA-256 Hashes)
 -- NOTE: Absolutely NO question text or paper JSON is stored in this table! Pseudonym & hash only.
+--
+-- leaf_hash is deliberately NOT UNIQUE. Two candidates drawing an identical
+-- paper is possible with a small bank, and it is not an error. A UNIQUE
+-- constraint here silently drops the second candidate's row (the insert uses
+-- ON CONFLICT DO NOTHING), leaving a real candidate with no ledger entry, no
+-- receipt, and no way to prove what they sat.
+--
+-- Uniqueness that IS wanted: one leaf per candidate per session.
+-- leaf_index is scoped to a session, not global: each session builds its own
+-- Merkle tree starting at index 0, so a global primary key on leaf_index
+-- alone would make two concurrent sessions collide on their very first leaf.
 CREATE TABLE IF NOT EXISTS ledger_leaves (
-    leaf_index BIGINT PRIMARY KEY,
     session_id VARCHAR(64) NOT NULL,
+    leaf_index BIGINT NOT NULL,
     candidate_pseudonym CHAR(64) NOT NULL,
-    leaf_hash CHAR(64) NOT NULL UNIQUE,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP
+    leaf_hash CHAR(64) NOT NULL,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    PRIMARY KEY (session_id, leaf_index),
+    UNIQUE (session_id, candidate_pseudonym)
 );
 
 -- Ceremony Audit Trail Table
@@ -74,6 +110,11 @@ $$ LANGUAGE plpgsql;
 DROP TRIGGER IF EXISTS enforce_append_only_blocks ON ledger_blocks;
 CREATE TRIGGER enforce_append_only_blocks
 BEFORE UPDATE OR DELETE ON ledger_blocks
+FOR EACH ROW EXECUTE FUNCTION raise_append_only_error();
+
+DROP TRIGGER IF EXISTS enforce_append_only_block_signatures ON ledger_block_signatures;
+CREATE TRIGGER enforce_append_only_block_signatures
+BEFORE UPDATE OR DELETE ON ledger_block_signatures
 FOR EACH ROW EXECUTE FUNCTION raise_append_only_error();
 
 DROP TRIGGER IF EXISTS enforce_append_only_leaves ON ledger_leaves;
