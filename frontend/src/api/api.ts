@@ -103,20 +103,45 @@ export interface UnlockResponse {
 const BASE = import.meta.env.VITE_API_BASE ?? "/api";
 
 async function call<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE}${path}`, {
-    headers: { "Content-Type": "application/json" },
-    ...init,
-  });
-  if (!response.ok) {
-    const errorText = await response.text();
-    let detail = errorText;
-    try {
-      const parsed = JSON.parse(errorText);
-      if (parsed.detail) detail = parsed.detail;
-    } catch (e) {
-      // Not JSON
+  let response: Response;
+  try {
+    response = await fetch(`${BASE}${path}`, {
+      headers: { "Content-Type": "application/json" },
+      ...init,
+    });
+  } catch (err: any) {
+    if (err.message === "Failed to fetch" || err.message.includes("NetworkError")) {
+      throw new Error("Unable to connect to the server. Please check your network connection or contact an invigilator.");
     }
-    throw new Error(`API Error (${response.status}): ${detail}`);
+    throw err;
+  }
+
+  if (!response.ok) {
+    let detail = "An unexpected error occurred.";
+    try {
+      const errorText = await response.text();
+      detail = errorText;
+      const parsed = JSON.parse(errorText);
+      if (parsed.detail) {
+        if (Array.isArray(parsed.detail)) {
+          detail = parsed.detail.map((e: any) => e.msg).join(", ");
+        } else {
+          detail = parsed.detail;
+        }
+      }
+    } catch (e) {
+      // Not JSON, fallback to status codes
+      if (response.status >= 500) {
+        detail = "The server encountered an unexpected problem. Please contact an invigilator.";
+      }
+    }
+
+    // Override generic server errors
+    if (detail === "Internal Server Error" || response.status >= 500) {
+      detail = "The server encountered an unexpected problem. Please contact an invigilator.";
+    }
+
+    throw new Error(detail);
   }
   return response.json() as Promise<T>;
 }

@@ -4,7 +4,9 @@ API router for candidate exam delivery, paper issuance, and response submission.
 
 import json
 from typing import Any
+# pyrefly: ignore [missing-import]
 from fastapi import APIRouter, HTTPException, status
+# pyrefly: ignore [missing-import]
 from pydantic import BaseModel
 from app.api.ceremony_router import ceremony_manager
 from app.exam.lifecycle import SessionState
