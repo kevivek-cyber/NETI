@@ -21,6 +21,12 @@ from app.generation.blueprint import DEMO
 from app.generation.rng import DeterministicRNG
 
 SEED = bytes(range(32))
+GOLDEN_PAPER_HASH = (
+    "ec8d34d79cadfd973cc5aa0685c6ed285a29a75e381e560fca05a659fd6956ad"
+)
+def test_golden_paper_hash(bank):
+    paper = generator.generate(SEED, bank, DEMO)
+    assert generator.paper_hash(paper).hex() == GOLDEN_PAPER_HASH
 
 
 @pytest.fixture(scope="module")
