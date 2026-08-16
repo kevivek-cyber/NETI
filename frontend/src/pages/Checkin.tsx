@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { api } from "../api/api";
-import { mockData, CandidateInfo } from "../api/mock-data";
+import { examConfig } from "../config/examConfig";
 import { 
   User, 
   ShieldCheck, 
@@ -15,7 +15,6 @@ import {
   ClipboardList,
   FileText,
   MonitorOff,
-  AlertTriangle,
   Loader2,
   Check
 } from "lucide-react";
@@ -90,36 +89,13 @@ function DetailRow({
 }
 
 export function Checkin() {
-  const [candidate, setCandidate] = useState<CandidateInfo | null>(null);
-  const [isLoadingData, setIsLoadingData] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-
   const [inputRollNumber, setInputRollNumber] = useState("");
   const [status, setStatus] = useState<CheckinState>("IDLE");
   const [validationError, setValidationError] = useState<string | null>(null);
   
   const navigate = useNavigate();
 
-  useEffect(() => {
-    loadCandidateData();
-  }, []);
 
-  async function loadCandidateData() {
-    setIsLoadingData(true);
-    setFetchError(null);
-    try {
-      const data = await mockData.getCurrentCandidate();
-      setCandidate(data);
-      if (data.rollNumber) {
-        setInputRollNumber(data.rollNumber);
-      }
-    } catch (err) {
-      console.error("Error loading candidate data:", err);
-      setFetchError("Unable to load candidate information.\nPlease check your network connection.");
-    } finally {
-      setIsLoadingData(false);
-    }
-  }
 
   async function handleCheckIn() {
     if (status === "VERIFYING") return;
@@ -133,11 +109,7 @@ export function Checkin() {
       return;
     }
 
-    if (candidate && trimmedInput !== candidate.rollNumber) {
-      setValidationError("Invalid roll number. Please check and try again.");
-      setStatus("ERROR");
-      return;
-    }
+
 
     setStatus("VERIFYING");
     
@@ -159,34 +131,76 @@ export function Checkin() {
       });
       
       const session = {
-        session_id: "2026-NEET-UG",
+        session_id: "2026-NEET-UG", // BLOCKED: Backend requires a known session identifier. This is a temporary frontend fallback.
         blueprint: issueRes.paper.blueprint,
         questions: issueRes.paper.questions.length,
         marks: 720,
         bank_version: issueRes.paper.bank_version,
         blueprint_hash: "unknown",
-        duration_seconds: 10800, // BLOCKED: Backend does not provide duration_seconds yet.
+        duration_seconds: issueRes.duration_seconds || 10800, // BLOCKED: Temporary fallback. Future: duration_seconds from backend.
+        expires_at_iso: issueRes.expires_at_iso,
       };
+
+      // Ensure NTA subject order and sequential global numbering (Physics -> Chemistry -> Biology)
+      const NTA_ORDER = ["PHYSICS", "CHEMISTRY", "BIOLOGY"];
+      
+      const getDisplaySubject = (rawSubject: string) => {
+        const upper = rawSubject.toUpperCase();
+        if (upper === "BOTANY" || upper === "ZOOLOGY") return "BIOLOGY";
+        return upper;
+      };
+
+      const sortedQuestions = [...issueRes.paper.questions].sort((a, b) => {
+        let idxA = NTA_ORDER.indexOf(getDisplaySubject(a.subject));
+        let idxB = NTA_ORDER.indexOf(getDisplaySubject(b.subject));
+        if (idxA === -1) idxA = 999;
+        if (idxB === -1) idxB = 999;
+        
+        if (idxA !== idxB) return idxA - idxB;
+        // Fallback: maintain the backend's original shuffle order within the same subject
+        return a.number - b.number; 
+      });
+
+      // Reassign global numbers purely for the frontend UI.
+      // Cryptographic hashing relies on item_id, so altering .number here is safe.
+      const remappedQuestions = sortedQuestions.map((q, idx) => ({
+        ...q,
+        number: idx + 1
+      }));
+
+      issueRes.paper.questions = remappedQuestions;
 
       const paper = {
         pseudonym: issueRes.candidate_id,
         paper_hash: issueRes.paper_hash,
         paper: issueRes.paper,
-        started_at: Date.now(), // BLOCKED: Backend does not provide started_at yet.
       };
 
       setStatus("VERIFIED");
       
       const { restoreSession } = await import("../hooks/useAutosave");
-      const savedSession = await restoreSession(candidate!.rollNumber);
+      const savedSession = await restoreSession(trimmedInput);
       
       let restoredState = null;
+      let fallbackStartTimeMs = Date.now(); // BLOCKED: Temporary fallback. Future: started_at_iso from backend
+
       if (savedSession && savedSession.paperHash === paper.paper_hash) {
         restoredState = savedSession;
+        if (savedSession.fallbackStartTimeMs) {
+          fallbackStartTimeMs = savedSession.fallbackStartTimeMs;
+        }
       }
       
       setTimeout(() => {
-        navigate("/instructions", { state: { paper, session, candidateId: candidate!.rollNumber, restoredState, candidate } });
+        navigate("/instructions", { 
+          state: { 
+            paper, 
+            session, 
+            candidateId: trimmedInput, 
+            restoredState, 
+            fallbackStartTimeMs
+          } 
+        });
       }, 800);
 
     } catch (e: any) {
@@ -196,20 +210,7 @@ export function Checkin() {
     }
   }
 
-  if (fetchError) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '4rem 2rem', gap: '1rem', background: '#FFFFFF', borderRadius: '12px', border: '1px solid #DCE4EE', marginTop: '2rem' }}>
-        <AlertTriangle size={48} color="#DC2626" />
-        <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0F172A' }}>Connection Lost</h3>
-        <p style={{ margin: 0, color: '#64748B', textAlign: 'center', whiteSpace: 'pre-line' }}>{fetchError}</p>
-        <button 
-          onClick={loadCandidateData}
-          style={{ padding: '0.75rem 2rem', background: '#2563EB', color: '#FFF', border: 'none', borderRadius: '6px', fontWeight: 600, cursor: 'pointer', marginTop: '1rem' }}>
-          Retry
-        </button>
-      </div>
-    );
-  }
+
 
   const isVerifying = status === "VERIFYING";
 
@@ -250,24 +251,7 @@ export function Checkin() {
             </div>
           </div>
 
-          <div style={{ padding: '32px' }} className={isLoadingData ? "skeleton-pulse" : ""}>
-            {isLoadingData ? (
-              <div style={{ display: 'flex', gap: '48px' }}>
-                 <div style={{ width: '280px', height: '320px', backgroundColor: '#E2E8F0', borderRadius: '12px' }}></div>
-                 <div style={{ flex: 1, display: 'flex', gap: '32px' }}>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                      <div style={{ height: '60px', backgroundColor: '#E2E8F0', borderRadius: '4px' }}></div>
-                      <div style={{ height: '60px', backgroundColor: '#E2E8F0', borderRadius: '4px' }}></div>
-                      <div style={{ height: '60px', backgroundColor: '#E2E8F0', borderRadius: '4px' }}></div>
-                    </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                      <div style={{ height: '60px', backgroundColor: '#E2E8F0', borderRadius: '4px' }}></div>
-                      <div style={{ height: '60px', backgroundColor: '#E2E8F0', borderRadius: '4px' }}></div>
-                      <div style={{ height: '60px', backgroundColor: '#E2E8F0', borderRadius: '4px' }}></div>
-                    </div>
-                 </div>
-              </div>
-            ) : (
+          <div style={{ padding: '32px' }}>
               <div style={{ display: 'flex', gap: '48px', flexWrap: 'wrap' }}>
                 
                 {/* Left Column: Photo */}
@@ -284,18 +268,14 @@ export function Checkin() {
                     overflow: 'hidden',
                     padding: '8px'
                   }}>
-                    {candidate?.photoUrl ? (
-                      <img src={candidate.photoUrl} alt="Candidate" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px', display: 'block' }} />
-                    ) : (
-                      <User size={80} color="#94A3B8" />
-                    )}
+                    <User size={80} color="#94A3B8" />
                   </div>
                   <div style={{ backgroundColor: '#F0F5FF', height: '64px', borderRadius: '8px', display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '2px' }}>
                       <ShieldCheck size={16} color="#2563EB" />
-                      <span style={{ color: '#2563EB', fontWeight: 600, fontSize: '14px' }}>Identity Verified</span>
+                      <span style={{ color: '#2563EB', fontWeight: 600, fontSize: '14px' }}>Information Pending</span>
                     </div>
-                    <span style={{ color: '#64748B', fontSize: '12px' }}>Photo captured at center</span>
+                    <span style={{ color: '#64748B', fontSize: '12px' }}>Pending server verification</span>
                   </div>
                 </div>
 
@@ -307,22 +287,24 @@ export function Checkin() {
                     <DetailRow 
                       icon={<User size={18} color="#3B82F6" />} 
                       label="Candidate Name" 
-                      value={candidate?.name || "Not available"} 
+                      value="Not provided by server" 
+                      valueColor="#64748B"
                     />
                     <DetailRow 
                       icon={<FileText size={18} color="#3B82F6" />} 
                       label="Roll Number" 
-                      value={candidate?.rollNumber || "Not available"} 
+                      value={inputRollNumber || "Pending check-in"} 
                     />
                     <DetailRow 
                       icon={<BookOpen size={18} color="#3B82F6" />} 
                       label="Examination" 
-                      value={candidate?.examName || "Not available"} 
+                      value={examConfig.examName} 
                     />
                     <DetailRow 
                       icon={<Calendar size={18} color="#3B82F6" />} 
                       label="Date & Time" 
-                      value={candidate?.examDate || "Not available"} 
+                      value="Not provided by server" 
+                      valueColor="#64748B"
                       noBorder
                     />
                   </div>
@@ -332,25 +314,25 @@ export function Checkin() {
                     <DetailRow 
                       icon={<Building size={18} color="#3B82F6" />} 
                       label="Exam Center" 
-                      value={candidate?.examCenter || "Not available"} 
+                      value="Not provided by server" 
+                      valueColor="#64748B"
                     />
                     <DetailRow 
                       icon={<MonitorSmartphone size={18} color="#3B82F6" />} 
                       label="Seat Number" 
-                      value={candidate?.seatNumber || "Not available"} 
-                      valueColor="#2563EB"
+                      value="Not provided by server" 
+                      valueColor="#64748B"
                     />
                     <DetailRow 
                       icon={<Clock size={18} color="#3B82F6" />} 
                       label="Duration" 
-                      value={candidate?.examDuration || "Not available"} 
+                      value={`${examConfig.totalMinutes} Minutes`} 
                       noBorder
                     />
                   </div>
 
                 </div>
               </div>
-            )}
           </div>
         </div>
 
@@ -377,7 +359,7 @@ export function Checkin() {
                   if (status === "ERROR") setStatus("IDLE");
                   if (validationError) setValidationError(null);
                 }} 
-                disabled={isVerifying || isLoadingData || status === "VERIFIED"}
+                disabled={isVerifying || status === "VERIFIED"}
                 placeholder="Enter your roll number"
                 style={{ 
                   width: '280px', 
@@ -405,17 +387,17 @@ export function Checkin() {
               )}
               <button 
                 onClick={handleCheckIn} 
-                disabled={isVerifying || isLoadingData || status === "VERIFIED"}
+                disabled={isVerifying || status === "VERIFIED"}
                 style={{ 
                   height: '48px',
                   width: '240px',
-                  backgroundColor: isVerifying || isLoadingData ? '#94A3B8' : status === "VERIFIED" ? '#16A34A' : '#1D4ED8',
+                  backgroundColor: isVerifying ? '#94A3B8' : status === "VERIFIED" ? '#16A34A' : '#1D4ED8',
                   color: '#fff',
                   border: 'none',
                   borderRadius: '6px',
                   fontWeight: 600,
                   fontSize: '15px',
-                  cursor: isVerifying || isLoadingData || status === "VERIFIED" ? 'not-allowed' : 'pointer',
+                  cursor: isVerifying || status === "VERIFIED" ? 'not-allowed' : 'pointer',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -448,17 +430,14 @@ export function Checkin() {
             <h3 style={{ margin: 0, color: '#0F172A', fontSize: '16px', fontWeight: 700 }}>Examination Overview</h3>
           </div>
 
-          {isLoadingData ? (
-             <div className="skeleton-pulse" style={{ height: '80px', borderRadius: '8px' }}></div>
-          ) : (
-            <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
               
               <div style={{ flex: 1, minWidth: '140px', backgroundColor: '#F0F5FF', borderRadius: '8px', padding: '16px', display: 'flex', alignItems: 'center', gap: '16px' }}>
                 <div style={{ width: '48px', height: '48px', backgroundColor: '#FFFFFF', borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                   <FileText size={24} color="#2563EB" />
                 </div>
                 <div>
-                  <div style={{ fontSize: '24px', color: '#0F172A', fontWeight: 700, lineHeight: 1.1 }}>{candidate?.totalQuestions || 0}</div>
+                  <div style={{ fontSize: '24px', color: '#0F172A', fontWeight: 700, lineHeight: 1.1 }}>{examConfig.totalQuestions}</div>
                   <div style={{ fontSize: '12px', color: '#475569', fontWeight: 600, marginTop: '2px' }}>Total Questions</div>
                 </div>
               </div>
@@ -468,12 +447,12 @@ export function Checkin() {
                   <Clock size={24} color="#9333EA" />
                 </div>
                 <div>
-                  <div style={{ fontSize: '24px', color: '#0F172A', fontWeight: 700, lineHeight: 1.1 }}>{candidate?.examDuration ? parseInt(candidate.examDuration) * 60 : 0}</div>
+                  <div style={{ fontSize: '24px', color: '#0F172A', fontWeight: 700, lineHeight: 1.1 }}>{examConfig.totalMinutes}</div>
                   <div style={{ fontSize: '12px', color: '#475569', fontWeight: 600, marginTop: '2px' }}>Total Minutes</div>
                 </div>
               </div>
 
-              {candidate?.subjects?.map((subj, idx) => {
+              {examConfig.subjects.map((subj, idx) => {
                 const colors = [
                   { bg: '#DCFCE7', iconBg: '#FFFFFF', text: '#16A34A', label: '#16A34A' }, // Physics
                   { bg: '#FFEDD5', iconBg: '#FFFFFF', text: '#EA580C', label: '#EA580C' }, // Chemistry
@@ -495,7 +474,6 @@ export function Checkin() {
               })}
 
             </div>
-          )}
         </div>
 
         {/* 4. Footer Warnings */}

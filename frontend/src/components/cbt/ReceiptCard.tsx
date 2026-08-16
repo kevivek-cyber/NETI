@@ -1,7 +1,99 @@
 import type { ReceiptPayload } from "../../api/api";
 import { CheckCircle, ShieldCheck, Download, Copy } from "lucide-react";
+import jsPDF from "jspdf";
 
 export function ReceiptCard({ receipt, paperHash }: { receipt: ReceiptPayload; paperHash: string }) {
+  
+  const handleDownloadPDF = () => {
+    const doc = new jsPDF();
+    const margin = 20;
+    const maxWidth = 170; // A4 width is 210, minus 20 margin on both sides
+    
+    // Title & Branding
+    doc.setFontSize(22);
+    doc.setTextColor(37, 99, 235); // #2563EB primary
+    doc.text("NETI", margin, 30);
+    
+    doc.setFontSize(14);
+    doc.setTextColor(15, 23, 42); // #0F172A
+    doc.text("NON-EXPLOITABLE TEST INTEGRITY", margin, 40);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100, 116, 139); // muted
+    doc.text("National Eligibility cum Entrance Test (NEET)", margin, 48);
+    
+    // Status
+    doc.setFontSize(16);
+    doc.setTextColor(16, 185, 129); // success
+    doc.text("Examination Submitted Successfully", margin, 65);
+    
+    // Cryptographic Proof Details
+    doc.setFontSize(11);
+    doc.setTextColor(15, 23, 42);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Receipt ID / Index:", margin, 85);
+    doc.setFont("helvetica", "normal");
+    doc.text(`#${receipt.inclusion_proof.index}`, margin, 92);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Session ID:", margin, 102);
+    doc.setFont("helvetica", "normal");
+    doc.text(receipt.session_id || "2026-NEET-UG", margin, 109);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Paper Hash:", margin, 119);
+    doc.setFont("courier", "normal");
+    doc.setFontSize(10);
+    const paperHashLines = doc.splitTextToSize(paperHash, maxWidth);
+    doc.text(paperHashLines, margin, 126);
+    const paperHashHeight = paperHashLines.length * 5;
+    
+    const rootYLabel = 126 + paperHashHeight + 5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Ledger Root:", margin, rootYLabel);
+    doc.setFont("courier", "normal");
+    doc.setFontSize(10);
+    const rootLines = doc.splitTextToSize(receipt.merkle_root, maxWidth);
+    doc.text(rootLines, margin, rootYLabel + 7);
+    const rootHeight = rootLines.length * 5;
+    
+    const statusYLabel = rootYLabel + 7 + rootHeight + 5;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(11);
+    doc.text("Verification Status:", margin, statusYLabel);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(16, 185, 129); // success color
+    doc.text("Verified", margin, statusYLabel + 7);
+    doc.setTextColor(15, 23, 42);
+    
+    // Merkle Proof
+    let y = statusYLabel + 22;
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(12);
+    doc.text(`Merkle Inclusion Proof (${receipt.inclusion_proof.path.length} steps)`, margin, y);
+    
+    y += 10;
+    doc.setFontSize(9);
+    doc.setFont("courier", "normal");
+    
+    receipt.inclusion_proof.path.forEach((step) => {
+      const stepText = `[${step.side}] ${step.hash}`;
+      const stepLines = doc.splitTextToSize(stepText, maxWidth);
+      const stepHeight = stepLines.length * 4.5;
+      
+      if (y + stepHeight > 280) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.text(stepLines, margin, y);
+      y += stepHeight + 2;
+    });
+    
+    doc.save(`NETI_Submission_Receipt_${receipt.inclusion_proof.index}.pdf`);
+  };
+
   return (
     <>
       <header className="cbt-header" style={{ marginBottom: '2rem' }}>
@@ -67,7 +159,7 @@ export function ReceiptCard({ receipt, paperHash }: { receipt: ReceiptPayload; p
             <button className="secondary" onClick={() => navigator.clipboard.writeText(JSON.stringify({receipt, paperHash}, null, 2))}>
               <Copy size={16} /> Copy Receipt
             </button>
-            <button className="primary" onClick={() => window.print()}>
+            <button className="primary" onClick={handleDownloadPDF}>
               <Download size={16} /> Download PDF
             </button>
           </div>

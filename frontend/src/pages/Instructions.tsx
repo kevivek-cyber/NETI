@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   RefreshCw
 } from "lucide-react";
+import { examConfig } from "../config/examConfig";
 
 const css = `
   .card-shadow {
@@ -34,14 +35,14 @@ export function Instructions() {
     session: any,
     candidateId: string,
     restoredState: AutosavePayload | null,
-    candidate: any
+    fallbackStartTimeMs: number
   } | null;
 
   if (!state || !state.paper) {
     return <Navigate to="/checkin" replace />;
   }
 
-  const { session, candidateId, candidate } = state;
+  const { candidateId } = state;
 
   return (
     <>
@@ -75,16 +76,16 @@ export function Instructions() {
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '24px', marginLeft: '36px' }}>
              <div style={{ background: '#F8FAFC', padding: '16px 20px', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
                 <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Candidate</div>
-                <div style={{ fontSize: '16px', color: '#0F172A', fontWeight: 700, marginTop: '6px' }}>{candidate.name}</div>
+                <div style={{ fontSize: '16px', color: '#64748B', fontWeight: 700, marginTop: '6px' }}>Name unavailable</div>
                 <div style={{ fontSize: '13px', color: '#2563EB', fontWeight: 600, marginTop: '2px' }}>{candidateId}</div>
              </div>
              <div style={{ background: '#F8FAFC', padding: '16px 20px', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
                 <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Duration</div>
-                <div style={{ fontSize: '18px', color: '#0F172A', fontWeight: 700, marginTop: '6px' }}>{session.duration_seconds / 60} Minutes</div>
+                <div style={{ fontSize: '18px', color: '#0F172A', fontWeight: 700, marginTop: '6px' }}>{examConfig.totalMinutes} Minutes</div>
              </div>
              <div style={{ background: '#F8FAFC', padding: '16px 20px', borderRadius: '8px', border: '1px solid #F1F5F9' }}>
                 <div style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Total Questions</div>
-                <div style={{ fontSize: '18px', color: '#0F172A', fontWeight: 700, marginTop: '6px' }}>{session.questions}</div>
+                <div style={{ fontSize: '18px', color: '#0F172A', fontWeight: 700, marginTop: '6px' }}>{examConfig.totalQuestions}</div>
              </div>
           </div>
         </div>

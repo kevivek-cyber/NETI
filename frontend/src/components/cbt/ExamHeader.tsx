@@ -1,26 +1,28 @@
-import { useExamTimer } from "../../hooks/useExamTimer";
+import { useServerTimer } from "../../hooks/useServerTimer";
 import { ConnectionStatus } from "../../hooks/useConnectionStatus";
 import { SaveStatus } from "../../hooks/useAutosave";
-import { CloudOff, CheckCircle, Loader2, AlertCircle, Clock, ShieldCheck, User, MonitorSmartphone } from "lucide-react";
+import { CloudOff, CheckCircle, Loader2, AlertCircle, Clock, ShieldCheck, User, MonitorSmartphone, Maximize } from "lucide-react";
+
+import { examConfig } from "../../config/examConfig";
 
 interface ExamHeaderProps {
-  examName?: string;
   candidateId: string;
   candidateName?: string;
   connectionStatus: ConnectionStatus;
   saveStatus: SaveStatus;
-  timer: ReturnType<typeof useExamTimer>;
+  timer: ReturnType<typeof useServerTimer>;
   onSubmit: () => void;
+  onRequestFullscreen?: () => void;
 }
 
 export function ExamHeader({
-  examName = "National Eligibility cum Entrance Test (NEET)",
   candidateId,
-  candidateName = "Aarav Sharma",
+  candidateName = "Name unavailable",
   connectionStatus,
   saveStatus,
   timer,
   onSubmit,
+  onRequestFullscreen,
 }: ExamHeaderProps) {
   const isDanger = timer.isDanger || timer.isCritical;
   
@@ -54,7 +56,7 @@ export function ExamHeader({
         
         <div style={{ paddingLeft: '24px', borderLeft: '1px solid #D9E2EF', height: '40px', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
            <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, textTransform: 'uppercase' }}>Examination</span>
-           <span style={{ fontSize: '14px', color: '#172A46', fontWeight: 700 }}>{examName}</span>
+           <span style={{ fontSize: '14px', color: '#172A46', fontWeight: 700 }}>{examConfig.examName}</span>
         </div>
       </div>
 
@@ -71,9 +73,18 @@ export function ExamHeader({
             <MonitorSmartphone size={16} color="#2563EB" />
             <div style={{ display: 'flex', flexDirection: 'column' }}>
                <span style={{ fontSize: '11px', color: '#64748B', fontWeight: 600, lineHeight: 1 }}>Seat No.</span>
-               <span style={{ fontSize: '13px', color: '#172A46', fontWeight: 700, marginTop: '2px' }}>A-42</span>
+               <span style={{ fontSize: '13px', color: '#172A46', fontWeight: 700, marginTop: '2px' }}>Unavailable</span>
             </div>
          </div>
+         {onRequestFullscreen && (
+            <button 
+               onClick={onRequestFullscreen} 
+               title="Enter Fullscreen"
+               style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '8px', background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '8px', cursor: 'pointer', color: '#475569' }}
+            >
+               <Maximize size={18} />
+            </button>
+         )}
       </div>
 
       {/* RIGHT: Status & Timer */}
@@ -110,7 +121,7 @@ export function ExamHeader({
             <div style={{ display: 'flex', flexDirection: 'column' }}>
                <span style={{ fontSize: '10px', color: isDanger ? '#DC2626' : '#2563EB', fontWeight: 700, letterSpacing: '0.05em' }}>TIME LEFT</span>
                <span style={{ fontSize: '20px', color: isDanger ? '#DC2626' : '#172A46', fontWeight: 800, lineHeight: 1, fontFamily: 'monospace' }}>
-                  {timer.formattedTime}
+                  {timer.isExpired ? "TIME EXPIRED" : timer.formattedTime}
                </span>
             </div>
          </div>

@@ -55,14 +55,14 @@ const css = `
   }
   
   .nav-btn-primary {
-    background: #2563EB;
-    border: 1px solid #2563EB;
+    background: #10B981;
+    border: 1px solid #10B981;
     color: #FFFFFF;
-    box-shadow: 0 2px 4px rgba(37,99,235,0.2);
+    box-shadow: 0 2px 4px rgba(16, 185, 129, 0.2);
   }
   .nav-btn-primary:hover:not(:disabled) {
-    background: #1D4ED8;
-    border-color: #1D4ED8;
+    background: #059669;
+    border-color: #059669;
   }
 
   .nav-btn-submit {

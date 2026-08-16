@@ -58,7 +58,7 @@ export function QuestionInfo({ question, subjectStats }: QuestionInfoProps) {
           </div>
           <div className="info-stat-row">
             <span className="info-stat-label">Chapter</span>
-            <span className="info-stat-val">General Mock</span>
+            <span className="info-stat-val">Not provided by server</span>
           </div>
           <div className="info-stat-row">
             <span className="info-stat-label">Question Type</span>

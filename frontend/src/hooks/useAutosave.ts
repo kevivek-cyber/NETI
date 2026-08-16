@@ -7,18 +7,31 @@ import type { ResponseEvent } from "../api/api";
 export type SaveStatus = "Saved" | "Saving..." | "Offline Saved" | "Sync Pending" | "Error";
 
 export interface AutosavePayload {
-  answers: Record<number, number>;
-  markedForReview: Record<number, boolean>;
-  visited: Record<number, boolean>;
-  currentQuestion: number;
+  answers: Record<string, number>;
+  markedForReview: Record<string, boolean>;
+  visited: Record<string, boolean>;
+  currentQuestionId: string;
   paperHash: string;
   events: ResponseEvent[];
   expectedResponseChain: string;
+  fallbackStartTimeMs?: number;
 }
 
 export function useAutosave(candidateId: string, payload: Omit<AutosavePayload, "events" | "expectedResponseChain">) {
-  const [status, setStatus] = useState<SaveStatus>("Saved");
+  const [status, setStatus] = useState<SaveStatus>(navigator.onLine ? "Saved" : "Offline Saved");
 
+  useEffect(() => {
+    const handleOnline = () => setStatus(prev => prev === "Offline Saved" ? "Saved" : prev);
+    const handleOffline = () => setStatus(prev => prev === "Saved" ? "Offline Saved" : prev);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
   
   const payloadRef = useRef(payload);
   const isInitialMount = useRef(true);
@@ -69,7 +82,7 @@ export function useAutosave(candidateId: string, payload: Omit<AutosavePayload, 
         await saveSessionData(`session_${candidateId}`, dataToSave);
 
         // Backend doesn't have an intermediate sync endpoint right now, so we stay Offline Saved or Saved.
-        setStatus("Saved");
+        setStatus(navigator.onLine ? "Saved" : "Offline Saved");
       } catch (err) {
         console.error("Autosave failed", err);
         setStatus("Error");
@@ -81,7 +94,7 @@ export function useAutosave(candidateId: string, payload: Omit<AutosavePayload, 
     payload.answers, 
     payload.markedForReview, 
     payload.visited,
-    payload.currentQuestion, 
+    payload.currentQuestionId, 
     candidateId,
     chainTracker
   ]);
@@ -103,7 +116,7 @@ export function useAutosave(candidateId: string, payload: Omit<AutosavePayload, 
       expectedResponseChain: chainTracker.currentRHex,
     };
     await saveSessionData(`session_${candidateId}`, dataToSave);
-    setStatus("Saved");
+    setStatus(navigator.onLine ? "Saved" : "Offline Saved");
   }, [chainTracker, candidateId]);
 
   return { status, addAnswerEvent, getEvents: () => chainTracker?.events || [], getExpectedChain: () => chainTracker?.currentRHex || "" };

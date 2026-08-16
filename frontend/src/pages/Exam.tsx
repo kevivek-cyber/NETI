@@ -1,27 +1,48 @@
 import { useLocation, Navigate, useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ExamClient } from "../components/cbt/ExamClient";
 import { api, SubmitRequest, ResponseEvent } from "../api/api";
-import { AutosavePayload } from "../hooks/useAutosave";
+import { AutosavePayload, restoreSession } from "../hooks/useAutosave";
+import { clearSessionData } from "../utils/storage";
 
 export function Exam() {
   const location = useLocation();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [latestRestoredState, setLatestRestoredState] = useState<AutosavePayload | null>(null);
+  const [isInitializing, setIsInitializing] = useState(true);
 
   const state = location.state as { 
     paper: any;
     session: any;
     candidateId: string,
-    restoredState: AutosavePayload | null
+    restoredState: AutosavePayload | null,
+    fallbackStartTimeMs: number
   } | null;
+
+  useEffect(() => {
+    if (!state || !state.paper) return;
+    
+    // Always fetch the absolutely latest state from IndexedDB on mount
+    // to handle page reloads where location.state might be stale.
+    restoreSession(state.candidateId).then((saved) => {
+      // If we found a saved session that matches our paper, use it
+      if (saved && saved.paperHash === state.paper.paper_hash) {
+        setLatestRestoredState(saved);
+      } else {
+        // Fallback to location.state if IndexedDB is empty (e.g., first entry)
+        setLatestRestoredState(state.restoredState);
+      }
+      setIsInitializing(false);
+    });
+  }, [state]);
 
   if (!state || !state.paper) {
     return <Navigate to="/checkin" replace />;
   }
 
-  const { paper, session, candidateId, restoredState } = state;
+  const { paper, session, candidateId, fallbackStartTimeMs } = state;
 
   async function submit(events: ResponseEvent[], expectedResponseChain: string) {
     setBusy(true);
@@ -33,9 +54,13 @@ export function Exam() {
         expected_response_chain: expectedResponseChain,
       };
       const res = await api.submitExam(payload);
+      
+      // Clear local IndexedDB snapshot strictly ON SUCCESS
+      await clearSessionData(`session_${candidateId}`);
+
       navigate("/receipt", { state: { receipt: res.receipt, paperHash: paper.paper_hash } });
     } catch (e: any) {
-      setError(e.message || String(e));
+      setError("Submission could not be confirmed. Your responses are saved locally. Please reconnect or contact the invigilator.");
     } finally {
       setBusy(false);
     }
@@ -43,21 +68,25 @@ export function Exam() {
 
   return (
     <>
-      <p className="muted small mono">
+      <p className="muted small mono" style={{ display: "none" }}>
+        {/* Intentionally hidden for a cleaner UI, but retained for debug */}
         paper {paper.paper_hash.slice(0, 32)}…
       </p>
       {error && <p className="error">{error}</p>}
-      {busy ? (
+      {isInitializing ? (
+        <p>Restoring exam session...</p>
+      ) : busy ? (
         <p>Submitting exam...</p>
       ) : (
         <ExamClient
           candidateId={candidateId}
           paperHash={paper.paper_hash}
           paper={paper.paper}
-          initialState={restoredState}
+          initialState={latestRestoredState}
           onSubmit={submit}
-          startedAt={paper.started_at}
-          durationSeconds={session.duration_seconds}
+          expiresAtIso={session.expires_at_iso}
+          fallbackDurationSeconds={session.duration_seconds}
+          fallbackStartTimeMs={fallbackStartTimeMs}
         />
       )}
     </>

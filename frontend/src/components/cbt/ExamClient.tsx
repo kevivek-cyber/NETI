@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from "react";
 import type { SealedPaper } from "../../api/api";
-import { useExamTimer } from "../../hooks/useExamTimer";
+import { useServerTimer } from "../../hooks/useServerTimer";
 import { useConnectionStatus } from "../../hooks/useConnectionStatus";
 import { useAutosave, type AutosavePayload } from "../../hooks/useAutosave";
+import { useTabOwnership } from "../../hooks/useTabOwnership";
+import { useExamSecurity } from "../../hooks/useExamSecurity";
 
 import { ExamHeader } from "./ExamHeader";
 import { QuestionPalette } from "./QuestionPalette";
@@ -25,59 +27,63 @@ interface Props {
   paper: SealedPaper;
   initialState: AutosavePayload | null;
   onSubmit: (events: any[], expectedResponseChain: string) => void;
-  startedAt: number;
-  durationSeconds: number;
+  expiresAtIso?: string;
+  fallbackDurationSeconds: number;
+  fallbackStartTimeMs: number;
 }
 
-export function ExamClient({ candidateId, paperHash, paper, initialState, onSubmit, startedAt, durationSeconds }: Props) {
-  const [current, setCurrent] = useState(initialState?.currentQuestion ?? 0);
-  const [answers, setAnswers] = useState<Record<number, number>>(initialState?.answers ?? {});
-  const [markedForReview, setMarkedForReview] = useState<Record<number, boolean>>(initialState?.markedForReview ?? {});
-  const [visited, setVisited] = useState<Record<number, boolean>>({
-    ...(initialState?.visited ?? {}),
-    [initialState?.currentQuestion ?? 0]: true,
+export function ExamClient({ candidateId, paperHash, paper, initialState, onSubmit, expiresAtIso, fallbackDurationSeconds, fallbackStartTimeMs }: Props) {
+  // Navigation index (0 to 179)
+  const [current, setCurrent] = useState(0);
+  
+  // Update state tracking to use item_id as canonical identity
+  const [answers, setAnswers] = useState<Record<string, number>>(initialState?.answers ?? {});
+  const [markedForReview, setMarkedForReview] = useState<Record<string, boolean>>(initialState?.markedForReview ?? {});
+  
+  // Set current and initially visit the appropriate question
+  useEffect(() => {
+    if (initialState?.currentQuestionId) {
+      const idx = paper.questions.findIndex(q => q.item_id === initialState.currentQuestionId);
+      if (idx !== -1) setCurrent(idx);
+    }
+  }, [initialState?.currentQuestionId, paper.questions]);
+
+  const [visited, setVisited] = useState<Record<string, boolean>>(() => {
+    const initialVisited = initialState?.visited ?? {};
+    const startId = initialState?.currentQuestionId ?? paper.questions[0]?.item_id;
+    if (startId) initialVisited[startId] = true;
+    return initialVisited;
   });
   
   const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
-  const [hasLostFocus, setHasLostFocus] = useState(false);
   
   const question = paper.questions[current];
   const [activeSubject, setActiveSubject] = useState<Subject>(
     getDisplaySubject(question.subject)
   );
   
-  const stats = calculateExamStats(paper.questions.length, answers, markedForReview, visited);
+  const stats = calculateExamStats(paper.questions, answers, markedForReview, visited);
 
   // Subject-specific stats
   const subjectQuestions = paper.questions.filter(q => getDisplaySubject(q.subject) === activeSubject);
-  
-  // Calculate local subject index
-  const subjectQuestionIndex = subjectQuestions.findIndex(q => q.number === question.number);
+  const subjectQuestionIndex = subjectQuestions.findIndex(q => q.item_id === question.item_id);
 
-  // Create a localized answers map for the subject stats
-  const subjectAnswers: Record<number, number> = {};
-  const subjectMarked: Record<number, boolean> = {};
-  const subjectVisited: Record<number, boolean> = {};
-
-  subjectQuestions.forEach((q, i) => {
-    const globalIdx = q.number - 1;
-    if (answers[q.number] !== undefined) subjectAnswers[q.number] = answers[q.number];
-    if (markedForReview[q.number]) subjectMarked[q.number] = true;
-    if (visited[globalIdx]) subjectVisited[i] = true; 
-  });
-
-  const subjectStats = calculateExamStats(subjectQuestions.length, subjectAnswers, subjectMarked, subjectVisited);
+  const subjectStats = calculateExamStats(subjectQuestions, answers, markedForReview, visited);
 
   const { status: saveStatus, addAnswerEvent, getEvents, getExpectedChain } = useAutosave(candidateId, {
     answers,
     markedForReview,
     visited,
-    currentQuestion: current,
+    currentQuestionId: question.item_id,
     paperHash,
+    fallbackStartTimeMs,
   });
 
-  const timer = useExamTimer(durationSeconds, startedAt);
+  const timer = useServerTimer(expiresAtIso, fallbackDurationSeconds, fallbackStartTimeMs);
   const connectionStatus = useConnectionStatus();
+  
+  // Hardened Multi-Tab prevention using heartbeat
+  const isOwner = useTabOwnership(paperHash);
 
   // Auto-submit when time expires
   useEffect(() => {
@@ -86,79 +92,51 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
     }
   }, [timer.isExpired, onSubmit, getEvents, getExpectedChain]);
 
-  // Kiosk Mode Protections
-  useEffect(() => {
-    const handleContextMenu = (e: MouseEvent) => e.preventDefault();
-    const handleCopyPaste = (e: ClipboardEvent) => e.preventDefault();
-    const handleSelectStart = (e: Event) => e.preventDefault();
-    
-    const handleVisibilityChange = () => {
-      if (document.hidden) setHasLostFocus(true);
-    };
-    const handleBlur = () => setHasLostFocus(true);
-    const handleFocus = () => setHasLostFocus(false);
+  const { hasLostFocus, clearFocusLoss, enterFullscreen } = useExamSecurity();
 
-    document.addEventListener('contextmenu', handleContextMenu);
-    document.addEventListener('copy', handleCopyPaste);
-    document.addEventListener('cut', handleCopyPaste);
-    document.addEventListener('paste', handleCopyPaste);
-    document.addEventListener('selectstart', handleSelectStart);
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    window.addEventListener('blur', handleBlur);
-    window.addEventListener('focus', handleFocus);
-
-    return () => {
-      document.removeEventListener('contextmenu', handleContextMenu);
-      document.removeEventListener('copy', handleCopyPaste);
-      document.removeEventListener('cut', handleCopyPaste);
-      document.removeEventListener('paste', handleCopyPaste);
-      document.removeEventListener('selectstart', handleSelectStart);
-      
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      window.removeEventListener('blur', handleBlur);
-      window.removeEventListener('focus', handleFocus);
-    };
-  }, []);
+  // Kiosk Mode Protections (now managed via useExamSecurity hook)
 
   const toggleReview = useCallback(() => {
     setMarkedForReview((prev) => ({
       ...prev,
-      [question.number]: !prev[question.number]
+      [question.item_id]: !prev[question.item_id]
     }));
-  }, [question.number]);
+  }, [question.item_id]);
 
   const handleAnswer = useCallback((optionIndex: number) => {
-    setAnswers((prev) => ({ ...prev, [question.number]: optionIndex }));
+    setAnswers((prev) => ({ ...prev, [question.item_id]: optionIndex }));
     addAnswerEvent(question.item_id, optionIndex);
-  }, [question.number, question.item_id, addAnswerEvent]);
+  }, [question.item_id, addAnswerEvent]);
 
   const clearResponse = useCallback(() => {
     setAnswers((prev) => {
       const newAnswers = { ...prev };
-      delete newAnswers[question.number];
+      delete newAnswers[question.item_id];
       return newAnswers;
     });
-  }, [question.number]);
+  }, [question.item_id]);
 
   const handleQuestionSelect = (index: number) => {
+    const targetQ = paper.questions[index];
     setCurrent(index);
-    setVisited(prev => ({ ...prev, [index]: true }));
-    setActiveSubject(getDisplaySubject(paper.questions[index].subject));
+    setVisited(prev => ({ ...prev, [targetQ.item_id]: true }));
+    setActiveSubject(getDisplaySubject(targetQ.subject));
   };
 
   const goPrevious = useCallback(() => {
     const prevIndex = Math.max(0, current - 1);
+    const targetQ = paper.questions[prevIndex];
     setCurrent(prevIndex);
-    setVisited(prev => ({ ...prev, [prevIndex]: true }));
-    setActiveSubject(getDisplaySubject(paper.questions[prevIndex].subject));
+    setVisited(prev => ({ ...prev, [targetQ.item_id]: true }));
+    setActiveSubject(getDisplaySubject(targetQ.subject));
   }, [current, paper.questions]);
 
   const goNext = useCallback(() => {
     const nextIndex = Math.min(paper.questions.length - 1, current + 1);
+    const targetQ = paper.questions[nextIndex];
     setCurrent(nextIndex);
-    setVisited(prev => ({ ...prev, [nextIndex]: true }));
-    setActiveSubject(getDisplaySubject(paper.questions[nextIndex].subject));
+    setVisited(prev => ({ ...prev, [targetQ.item_id]: true }));
+    setActiveSubject(getDisplaySubject(targetQ.subject));
   }, [current, paper.questions]);
 
   const handleSubjectChange = (subject: Subject) => {
@@ -168,27 +146,37 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
     const subjQs = paper.questions.filter(q => getDisplaySubject(q.subject) === subject);
     if (subjQs.length === 0) return;
 
-    let targetGlobalIndex = subjQs[0].number - 1;
+    let targetGlobalIndex = paper.questions.findIndex(q => q.item_id === subjQs[0].item_id);
     for (const q of subjQs) {
-      const gIdx = q.number - 1;
-      if (!visited[gIdx] && answers[q.number] === undefined) {
-        targetGlobalIndex = gIdx;
+      if (!visited[q.item_id] && answers[q.item_id] === undefined) {
+        targetGlobalIndex = paper.questions.findIndex(allQ => allQ.item_id === q.item_id);
         break;
       }
     }
     
+    const targetQ = paper.questions[targetGlobalIndex];
     setCurrent(targetGlobalIndex);
-    setVisited(prev => ({ ...prev, [targetGlobalIndex]: true }));
+    setVisited(prev => ({ ...prev, [targetQ.item_id]: true }));
   };
 
   return (
     <div className="cbt-layout">
-      {hasLostFocus && (
-        <div className="modal-overlay kiosk-warning">
+      {!isOwner && (
+        <div className="modal-overlay" style={{ zIndex: 9999, background: '#fff', color: '#111' }}>
+          <div style={{ padding: '2rem', textAlign: 'center' }}>
+            <h1 style={{ color: '#DC2626' }}>Multiple Tabs Detected</h1>
+            <p style={{ fontSize: '1.25rem', marginTop: '1rem' }}>This examination session is already open in another tab.</p>
+            <p style={{ marginTop: '0.5rem', color: '#666' }}>Please return to the original tab to continue your examination.</p>
+          </div>
+        </div>
+      )}
+
+      {hasLostFocus && isOwner && (
+        <div className="modal-overlay kiosk-warning" role="dialog" aria-modal="true" aria-labelledby="focus-loss-heading">
           <div className="modal-content card" style={{ borderColor: 'var(--warning)', borderTopWidth: '4px', textAlign: 'center', maxWidth: '450px' }}>
-            <h2 className="text-text" style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>EXAM WINDOW FOCUS LOST</h2>
-            <p className="muted" style={{ marginBottom: '1.5rem' }}>Please return to the examination window.<br/>Your exam session remains active.</p>
-            <button className="btn btn-primary primary" style={{ width: '100%' }} onClick={() => setHasLostFocus(false)}>Return to Examination</button>
+            <h2 id="focus-loss-heading" className="text-text" style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>Exam window lost focus</h2>
+            <p className="muted" style={{ marginBottom: '1.5rem' }}>Please return to the examination window to continue your exam.</p>
+            <button className="btn btn-primary primary" style={{ width: '100%' }} onClick={clearFocusLoss} autoFocus>Return to Exam</button>
           </div>
         </div>
       )}
@@ -202,13 +190,12 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
       )}
 
       <ExamHeader
-        examName="National Eligibility cum Entrance Test (NEET)"
         candidateId={candidateId}
-        candidateName="Aarav Sharma"
         connectionStatus={connectionStatus}
         saveStatus={saveStatus}
         timer={timer}
         onSubmit={() => setShowSubmitConfirm(true)}
+        onRequestFullscreen={enterFullscreen}
       />
 
       <div className="cbt-main-wrapper">
@@ -227,11 +214,11 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
         <div className="cbt-main-center">
           <SubjectTabs activeSubject={activeSubject} onSubjectChange={handleSubjectChange} />
           <div className="cbt-content">
-            <QuestionCard
-              question={question}
+            <QuestionCard 
+              question={question} 
               subjectQuestionsCount={subjectQuestions.length}
               subjectQuestionIndex={subjectQuestionIndex}
-              selectedAnswer={answers[question.number]}
+              selectedAnswer={answers[question.item_id]}
               onAnswerSelect={handleAnswer}
               onMarkReview={toggleReview}
             />
@@ -244,8 +231,8 @@ export function ExamClient({ candidateId, paperHash, paper, initialState, onSubm
             onSubmit={() => setShowSubmitConfirm(true)}
             isFirst={current === 0}
             isLast={current === paper.questions.length - 1}
-            isMarked={!!markedForReview[question.number]}
-            hasAnswer={answers[question.number] !== undefined}
+            isMarked={!!markedForReview[question.item_id]}
+            hasAnswer={answers[question.item_id] !== undefined}
           />
         </div>
 

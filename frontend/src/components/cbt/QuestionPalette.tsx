@@ -3,14 +3,13 @@ import { Question } from "../../api/api";
 import clsx from "clsx";
 import { ExamStats } from "../../utils/examStats";
 import { Subject } from "./SubjectTabs";
-import { ChevronDown, ChevronUp } from "lucide-react";
 
 interface QuestionPaletteProps {
   questions: Question[];
   currentQuestionIndex: number; // Global index
-  answers: Record<number, number>;
-  markedForReview: Record<number, boolean>;
-  visited?: Record<number, boolean>;
+  answers: Record<string, number>;
+  markedForReview: Record<string, boolean>;
+  visited?: Record<string, boolean>;
   onQuestionSelect: (index: number) => void;
   activeSubject: Subject;
   onSubjectChange: (subject: Subject) => void;
@@ -55,43 +54,54 @@ const css = `
   }
   
   .palette-bubble.not-visited {
-    background: #FFFFFF;
+    background: #F1F5F9;
     color: #475569;
-    border-color: #D9E2EF;
+    border-color: #CBD5E1;
+    border-radius: 8px;
   }
   .palette-bubble.not-answered {
-    background: #FEF2F2;
-    color: #EF4444;
-    border-color: #FCA5A5;
+    background: #EE7A7A;
+    color: #FFFFFF;
+    border-color: #E26060;
+    border-bottom-left-radius: 12px;
+    border-top-right-radius: 12px;
+    border-top-left-radius: 4px;
+    border-bottom-right-radius: 4px;
   }
   .palette-bubble.answered {
-    background: #F0FDF4;
-    color: #16A34A;
-    border-color: #86EFAC;
+    background: #10B981;
+    color: #FFFFFF;
+    border-color: #059669;
+    border-top-left-radius: 12px;
+    border-bottom-right-radius: 12px;
+    border-top-right-radius: 4px;
+    border-bottom-left-radius: 4px;
   }
   .palette-bubble.review {
-    background: #F5F3FF;
-    color: #8B5CF6;
-    border-color: #C4B5FD;
+    background: #8B5CF6;
+    color: #FFFFFF;
+    border-color: #7C3AED;
+    border-radius: 50%;
   }
   .palette-bubble.answered-review {
-    background: #F0FDF4;
-    color: #16A34A;
-    border-color: #86EFAC;
+    background: #8B5CF6;
+    color: #FFFFFF;
+    border-color: #7C3AED;
+    border-radius: 50%;
   }
   .palette-bubble.answered-review::after {
     content: '';
     position: absolute;
-    bottom: -4px;
-    right: -4px;
+    bottom: -2px;
+    right: -2px;
     width: 12px;
     height: 12px;
-    background: #8B5CF6;
-    border-radius: 4px;
+    background: #10B981;
+    border-radius: 50%;
     border: 2px solid #FFFFFF;
   }
   .palette-bubble.current {
-    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #2563EB;
+    box-shadow: 0 0 0 2px #FFFFFF, 0 0 0 4px #3B82F6;
     z-index: 2;
   }
 
@@ -131,12 +141,6 @@ export function QuestionPalette({
     }
   }, [currentQuestionIndex, activeSubject]);
   
-  const subjects: { name: Subject; count: number }[] = [
-    { name: "PHYSICS", count: questions.filter(q => getDisplaySubject(q.subject) === "PHYSICS").length },
-    { name: "CHEMISTRY", count: questions.filter(q => getDisplaySubject(q.subject) === "CHEMISTRY").length },
-    { name: "BIOLOGY", count: questions.filter(q => getDisplaySubject(q.subject) === "BIOLOGY").length },
-  ];
-
   return (
     <div style={{ 
       width: '300px', 
@@ -155,20 +159,20 @@ export function QuestionPalette({
         <h3 style={{ margin: '0 0 16px 0', fontSize: '13px', color: '#172A46', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Question Palette</h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', fontSize: '11px', color: '#475569', fontWeight: 600 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="legend-dot" style={{ background: '#FFFFFF', border: '1px solid #D9E2EF' }}></div> Not Visited
+            <div className="legend-dot" style={{ background: '#F1F5F9', border: '1px solid #CBD5E1', borderRadius: '4px' }}></div> Not Visited
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="legend-dot" style={{ background: '#EF4444' }}></div> Not Answered
+            <div className="legend-dot" style={{ background: '#EE7A7A', borderBottomLeftRadius: '6px', borderTopRightRadius: '6px', borderTopLeftRadius: '2px', borderBottomRightRadius: '2px' }}></div> Not Answered
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="legend-dot" style={{ background: '#16A34A' }}></div> Answered
+            <div className="legend-dot" style={{ background: '#10B981', borderTopLeftRadius: '6px', borderBottomRightRadius: '6px', borderTopRightRadius: '2px', borderBottomLeftRadius: '2px' }}></div> Answered
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <div className="legend-dot" style={{ background: '#8B5CF6' }}></div> Marked
+            <div className="legend-dot" style={{ background: '#8B5CF6', borderRadius: '50%' }}></div> Marked
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', gridColumn: 'span 2' }}>
-            <div className="legend-dot" style={{ background: '#16A34A', position: 'relative' }}>
-              <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '6px', height: '6px', background: '#8B5CF6', borderRadius: '2px', border: '1px solid #FFFFFF' }}></div>
+            <div className="legend-dot" style={{ background: '#8B5CF6', borderRadius: '50%', position: 'relative' }}>
+              <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', width: '6px', height: '6px', background: '#10B981', borderRadius: '50%', border: '1px solid #FFFFFF' }}></div>
             </div> Answered & Marked
           </div>
         </div>
@@ -180,62 +184,39 @@ export function QuestionPalette({
         ref={scrollContainerRef}
         style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: '12px 20px' }}
       >
-        {subjects.map((subj) => {
-          const isActive = activeSubject === subj.name;
-          const subjectQuestions = questions.filter(q => getDisplaySubject(q.subject) === subj.name);
-          
-          return (
-            <div key={subj.name} style={{ marginBottom: '16px' }}>
-              <div 
-                onClick={() => onSubjectChange(subj.name)}
-                style={{ 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center', 
-                  padding: '8px 0 12px 0', 
-                  borderBottom: isActive ? '2px solid #2563EB' : '1px solid #D9E2EF',
-                  marginBottom: '16px',
-                  cursor: 'pointer'
-                }}
-              >
-                <span style={{ fontSize: '13px', fontWeight: 700, color: isActive ? '#2563EB' : '#64748B' }}>
-                  {subj.name} <span style={{ color: '#94A3B8', fontWeight: 600, fontSize: '11px', marginLeft: '4px' }}>({subj.count})</span>
-                </span>
-                {isActive ? <ChevronUp size={16} color="#2563EB" /> : <ChevronDown size={16} color="#94A3B8" />}
-              </div>
-              
-              {isActive && (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
-                  {subjectQuestions.map((q, index) => {
-                    const globalIndex = q.number - 1;
-                    const subjectQuestionNumber = index + 1;
-                    const isAnswered = answers[q.number] !== undefined;
-                    const isMarked = markedForReview[q.number];
-                    const isCurrent = globalIndex === currentQuestionIndex;
-                    const isVisited = visited[globalIndex] || isCurrent;
+        <div style={{ marginBottom: '16px' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 0 12px 0', borderBottom: '2px solid #2563EB', marginBottom: '16px' }}>
+            <span style={{ fontSize: '14px', fontWeight: 700, color: '#2563EB' }}>
+              {activeSubject} <span style={{ color: '#64748B', fontWeight: 600, fontSize: '12px', marginLeft: '4px' }}>({questions.filter(q => getDisplaySubject(q.subject) === activeSubject).length})</span>
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+            {questions.filter(q => getDisplaySubject(q.subject) === activeSubject).map((q) => {
+              const globalIndex = q.number - 1; // Assuming sequential mapping from Checkin
+              const isAnswered = answers[q.item_id] !== undefined;
+              const isMarked = markedForReview[q.item_id];
+              const isCurrent = globalIndex === currentQuestionIndex;
+              const isVisited = visited[q.item_id] || isCurrent;
 
-                    let statusClass = "not-visited";
-                    if (isAnswered && isMarked) statusClass = "answered-review";
-                    else if (isAnswered) statusClass = "answered";
-                    else if (isMarked) statusClass = "review";
-                    else if (isVisited) statusClass = "not-answered";
+              let statusClass = "not-visited";
+              if (isAnswered && isMarked) statusClass = "answered-review";
+              else if (isAnswered) statusClass = "answered";
+              else if (isMarked) statusClass = "review";
+              else if (isVisited) statusClass = "not-answered";
 
-                    return (
-                      <button
-                        key={q.number}
-                        className={clsx("palette-bubble", statusClass, isCurrent && "current")}
-                        onClick={() => onQuestionSelect(globalIndex)}
-                        aria-current={isCurrent ? "true" : undefined}
-                      >
-                        {String(subjectQuestionNumber).padStart(2, '0')}
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          );
-        })}
+              return (
+                <button
+                  key={q.item_id}
+                  className={clsx("palette-bubble", statusClass, isCurrent && "current")}
+                  onClick={() => onQuestionSelect(globalIndex)}
+                  aria-current={isCurrent ? "true" : undefined}
+                >
+                  {q.number}
+                </button>
+              );
+            })}
+          </div>
+        </div>
       </div>
     </div>
   );

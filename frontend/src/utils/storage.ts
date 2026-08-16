@@ -94,3 +94,30 @@ export async function loadSessionData(key: string): Promise<any> {
     return useLocalStorageFallback(key);
   }
 }
+
+/**
+ * Clears arbitrary data from IndexedDB with a fallback to localStorage.
+ */
+export async function clearSessionData(key: string): Promise<void> {
+  try {
+    if (!window.indexedDB) throw new Error("IDB not supported");
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, "readwrite");
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.delete(key);
+      req.onsuccess = () => {
+        // Also clear local storage just in case
+        localStorage.removeItem(`neti_${key}`);
+        resolve();
+      };
+      req.onerror = () => {
+        localStorage.removeItem(`neti_${key}`);
+        resolve();
+      };
+    });
+  } catch (e) {
+    console.warn("Falling back to localStorage for clearSessionData", e);
+    localStorage.removeItem(`neti_${key}`);
+  }
+}

@@ -39,6 +39,10 @@ export interface IssuePaperResponse {
   paper_hash: string;
   session_state: string;
   paper: SealedPaper;
+  // Future backend contract fields for server-authoritative timer:
+  expires_at_iso?: string;
+  started_at_iso?: string;
+  duration_seconds?: number;
 }
 
 export interface ResponseEvent {

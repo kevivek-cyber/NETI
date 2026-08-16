@@ -44,7 +44,7 @@ const css = `
     color: #2563EB;
   }
   .q-opt-text {
-    font-size: 15px;
+    font-size: 16px;
     color: #172A46;
     flex: 1;
     word-wrap: break-word;
@@ -72,7 +72,7 @@ export function QuestionCard({
            <div style={{ fontSize: '13px', color: '#2563EB', fontWeight: 700, letterSpacing: '0.05em', marginBottom: '8px' }}>
              {question.subject.toUpperCase()}
            </div>
-           <h2 style={{ fontSize: '20px', fontWeight: 800, color: '#172A46', margin: '0 0 12px 0' }}>
+           <h2 style={{ fontSize: '18px', fontWeight: 800, color: '#172A46', margin: '0 0 12px 0' }}>
              Question {subjectQuestionIndex + 1} of {subjectQuestionsCount}
            </h2>
            <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
@@ -90,7 +90,7 @@ export function QuestionCard({
           <Info size={16} />
           <span>Overall Question No. {question.number}</span>
         </div>
-        <p style={{ fontSize: '16px', lineHeight: 1.6, color: '#172A46', margin: 0, fontWeight: 500, wordWrap: 'break-word' }}>
+        <p style={{ fontSize: '18px', lineHeight: 1.6, color: '#172A46', margin: 0, fontWeight: 500, wordWrap: 'break-word' }}>
           {question.stem}
         </p>
       </div>
@@ -103,7 +103,7 @@ export function QuestionCard({
             <label key={index} className={clsx("q-opt-card", isSelected && "selected")}>
               <input
                 type="radio"
-                name={`q-${question.number}`}
+                name={`q-${question.item_id}`}
                 checked={isSelected}
                 onChange={() => onAnswerSelect(index)}
                 style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
