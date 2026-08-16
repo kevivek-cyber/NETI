@@ -240,3 +240,16 @@ async def submit_exam(req: SubmitRequest):
         "receipt": receipt_payload,
         "receipt_hash": receipt_h,
     }
+
+@router.get("/time")
+async def get_server_time():
+    """
+    Returns the current UTC server time, signed by an ephemeral server key.
+    Used by the exam client to establish a trusted local countdown timer with drift correction.
+    """
+    from app.core.signing import timer_signer
+    now_iso, signature = timer_signer.sign_time()
+    return {
+        "server_time_iso": now_iso,
+        "signature": signature
+    }

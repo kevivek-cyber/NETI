@@ -83,5 +83,21 @@ class SessionStore:
             
             return session
 
+    async def get_all_sessions(self, session_id: str) -> list[dict]:
+        """Fetch summary of all candidates for a specific exam session."""
+        sessions = []
+        async for conn in get_db():
+            rows = await conn.fetch(
+                "SELECT candidate_pseudonym, state, updated_at FROM candidate_sessions WHERE session_id = $1",
+                session_id
+            )
+            for row in rows:
+                sessions.append({
+                    "candidate_pseudonym": row["candidate_pseudonym"],
+                    "state": row["state"],
+                    "updated_at": row["updated_at"].isoformat() if row["updated_at"] else None
+                })
+        return sessions
+
 # Global singleton instance
 session_store = SessionStore()

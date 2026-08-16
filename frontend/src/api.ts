@@ -106,7 +106,15 @@ export const api = {
       }),
     }),
 
-  receipt: (index: number) => call<Receipt>(`/ledger/receipt/${index}`),
+  unlock: (sessionId: string, shares: { index: number; share_hex: string }[]) =>
+    call<{ status: string; session_id: string; message: string }>("/ceremony/unlock", {
+      method: "POST",
+      body: JSON.stringify({ session_id: sessionId, shares }),
+    }),
 
-  root: () => call<{ root: string; leaf_count: number }>("/ledger/root"),
+  revealAnswers: (sessionId: string, shares: { index: number; share_hex: string }[]) =>
+    call<{ status: string; session_id: string; message: string }>("/ceremony/reveal-answers", {
+      method: "POST",
+      body: JSON.stringify({ session_id: sessionId, shares }),
+    }),
 };
