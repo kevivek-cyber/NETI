@@ -35,11 +35,13 @@ def test_app_and_routers_import():
 def test_router_routes_are_registered():
     from app.api.ceremony_router import router as ceremony
     from app.api.exam_router import router as exam
+    from app.api.admin_router import router as admin
 
     assert {r.path for r in exam.routes} == {
-        "/exam/check-in", "/exam/issue-paper", "/exam/submit"
+        "/exam/check-in", "/exam/issue-paper", "/exam/submit", "/exam/time"
     }
-    assert {r.path for r in ceremony.routes} == {"/ceremony/unlock"}
+    assert {r.path for r in ceremony.routes} == {"/ceremony/unlock", "/ceremony/reveal-answers"}
+    assert {r.path for r in admin.routes} == {"/admin/sessions/{session_id}"}
 
 
 # --- ceremony -------------------------------------------------------------
