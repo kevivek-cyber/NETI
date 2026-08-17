@@ -41,6 +41,12 @@ jobs:
           password: postgres
           database: neti
 
+      - name: Initialize database
+        if: runner.os == 'Linux'
+        run: psql -h localhost -U postgres -d neti -f db/schema.sql
+        env:
+          PGPASSWORD: postgres
+
       - name: Install dependencies
         run: python -m pip install -r requirements.txt
 
