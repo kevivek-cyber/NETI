@@ -24,19 +24,50 @@ export function Exam() {
   useEffect(() => {
     if (!state || !state.paper) return;
     
-    // Always fetch the absolutely latest state from IndexedDB on mount
-    // to handle page reloads where location.state might be stale.
-    restoreSession(state.candidateId).then((saved) => {
-      // If we found a saved session that matches our paper, use it
-      if (saved && saved.paperHash === state.paper.paper_hash) {
-        setLatestRestoredState(saved);
-      } else {
-        // Fallback to location.state if IndexedDB is empty (e.g., first entry)
-        setLatestRestoredState(state.restoredState);
-      }
-      setIsInitializing(false);
-    });
-  }, [state]);
+    let mounted = true;
+
+    // 1. Check authoritative backend state before restoring
+    api.checkIn({ candidate_id: state.candidateId, session_id: state.session.session_id })
+      .then((res) => {
+        if (!mounted) return;
+        
+        if (res.session_state === "submitted") {
+          navigate("/checkin", { replace: true });
+          return;
+        }
+
+        // 2. If not submitted, load IndexedDB
+        restoreSession(state.candidateId).then((saved) => {
+          if (!mounted) return;
+          if (saved && saved.paperHash === state.paper.paper_hash) {
+            setLatestRestoredState(saved);
+          } else {
+            setLatestRestoredState(state.restoredState);
+          }
+          setIsInitializing(false);
+        });
+      })
+      .catch((err) => {
+        if (!mounted) return;
+        if (err.message && err.message.includes("SESSION_ALREADY_SUBMITTED")) {
+          navigate("/checkin", { replace: true });
+          return;
+        }
+        
+        // Fallback for network offline: continue to load
+        restoreSession(state.candidateId).then((saved) => {
+          if (!mounted) return;
+          if (saved && saved.paperHash === state.paper.paper_hash) {
+            setLatestRestoredState(saved);
+          } else {
+            setLatestRestoredState(state.restoredState);
+          }
+          setIsInitializing(false);
+        });
+      });
+
+    return () => { mounted = false; };
+  }, [state, navigate]);
 
   if (!state || !state.paper) {
     return <Navigate to="/checkin" replace />;
@@ -58,8 +89,13 @@ export function Exam() {
       // Clear local IndexedDB snapshot strictly ON SUCCESS
       await clearSessionData(`session_${candidateId}`);
 
-      navigate("/receipt", { state: { receipt: res.receipt, paperHash: paper.paper_hash } });
+      navigate("/receipt", { state: { receipt: res.receipt, paperHash: paper.paper_hash }, replace: true });
     } catch (e: any) {
+      if (e.message && e.message.includes("SESSION_ALREADY_SUBMITTED")) {
+         await clearSessionData(`session_${candidateId}`);
+         navigate("/checkin", { replace: true });
+         return;
+      }
       setError("Submission could not be confirmed. Your responses are saved locally. Please reconnect or contact the invigilator.");
     } finally {
       setBusy(false);
