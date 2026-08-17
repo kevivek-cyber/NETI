@@ -39,6 +39,8 @@ export interface IssuePaperResponse {
   paper_hash: string;
   session_state: string;
   paper: SealedPaper;
+  duration_seconds: number;
+  started_at: number;
 }
 
 export interface ResponseEvent {

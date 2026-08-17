@@ -165,14 +165,14 @@ export function Checkin() {
         marks: 720,
         bank_version: issueRes.paper.bank_version,
         blueprint_hash: "unknown",
-        duration_seconds: 10800, // BLOCKED: Backend does not provide duration_seconds yet.
+        duration_seconds: issueRes.duration_seconds,
       };
 
       const paper = {
         pseudonym: issueRes.candidate_id,
         paper_hash: issueRes.paper_hash,
         paper: issueRes.paper,
-        started_at: Date.now(), // BLOCKED: Backend does not provide started_at yet.
+        started_at: issueRes.started_at,
       };
 
       setStatus("VERIFIED");

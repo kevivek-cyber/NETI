@@ -3,6 +3,7 @@ API router for candidate exam delivery, paper issuance, and response submission.
 """
 
 import json
+import time
 from typing import Any
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel
@@ -152,6 +153,8 @@ async def issue_paper(req: IssuePaperRequest):
         "paper_hash": paper_leaf,
         "session_state": session.state.value,
         "paper": sealed(paper),
+        "duration_seconds": blueprint.duration_minutes * 60,
+        "started_at": int(time.time() * 1000),
     }
 
 
